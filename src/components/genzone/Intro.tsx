@@ -14,6 +14,7 @@ export function Intro({ onDone }: { onDone: () => void }) {
   const [show, setShow] = useState(true);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [clubName, setClubName] = useState("GenZone");
+  const [logoError, setLogoError] = useState(false);
 
   useEffect(() => {
     supabase
@@ -60,15 +61,30 @@ export function Intro({ onDone }: { onDone: () => void }) {
             animate={{ x: "100%", opacity: [0, 1, 0] }}
             transition={{ duration: 1.4, delay: 0.3 }}
           />
-          <motion.img
-            src={displayLogo}
-            alt={clubName}
-            className="logo-glow relative w-[min(62vw,340px)] mix-blend-screen"
-            initial={{ scale: 0.3, rotateX: 60, rotateZ: -20, opacity: 0, filter: "blur(20px)" }}
-            animate={{ scale: 1, rotateX: 0, rotateZ: 0, opacity: 1, filter: "blur(0px)" }}
-            transition={{ duration: 1.3, delay: 0.6, ease: [0.16, 1, 0.3, 1] }}
-            style={{ transformPerspective: 800 }}
-          />
+          {/* Logo or text fallback */}
+          {!logoError ? (
+            <motion.img
+              src={displayLogo}
+              alt={clubName}
+              className="logo-glow relative w-[min(62vw,340px)] mix-blend-screen"
+              initial={{ scale: 0.3, rotateX: 60, rotateZ: -20, opacity: 0, filter: "blur(20px)" }}
+              animate={{ scale: 1, rotateX: 0, rotateZ: 0, opacity: 1, filter: "blur(0px)" }}
+              transition={{ duration: 1.3, delay: 0.6, ease: [0.16, 1, 0.3, 1] }}
+              style={{ transformPerspective: 800 }}
+              onError={() => setLogoError(true)}
+            />
+          ) : (
+            <motion.div
+              className="logo-glow relative"
+              initial={{ scale: 0.3, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 1.3, delay: 0.6, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <span className="font-display text-[clamp(3rem,14vw,7rem)] font-black tracking-tight text-white">
+                GEN<span className="text-neon">ZONE</span>
+              </span>
+            </motion.div>
+          )}
           <motion.p
             className="mt-8 px-6 text-center font-display text-sm font-bold uppercase tracking-[0.25em] md:text-lg"
             initial={{ opacity: 0, y: 20, letterSpacing: "0.8em" }}

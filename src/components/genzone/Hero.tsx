@@ -20,6 +20,7 @@ export function Hero({ ready }: { ready: boolean }) {
   const [lines, setLines] = useState(DEFAULT_LINES);
   const [subtitle, setSubtitle] = useState(DEFAULT_SUBTITLE);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [logoError, setLogoError] = useState(false);
 
   useEffect(() => {
     supabase
@@ -93,7 +94,20 @@ export function Hero({ ready }: { ready: boolean }) {
           transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
         >
           <div className="absolute inset-[10%] animate-spin rounded-full border border-dashed border-cyan/40 [animation-duration:30s]" />
-          <img src={displayLogo} alt="GenZone logo" className="logo-glow relative w-full mix-blend-screen" />
+          {!logoError ? (
+            <img
+              src={displayLogo}
+              alt="GenZone logo"
+              className="logo-glow relative w-full mix-blend-screen"
+              onError={() => setLogoError(true)}
+            />
+          ) : (
+            <div className="logo-glow relative flex items-center justify-center py-12">
+              <span className="font-display text-[clamp(3rem,10vw,6rem)] font-black tracking-tight text-white">
+                GEN<span className="text-neon">ZONE</span>
+              </span>
+            </div>
+          )}
         </motion.div>
       </div>
 

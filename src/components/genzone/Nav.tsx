@@ -9,6 +9,7 @@ export function Nav() {
   const [active, setActive] = useState("home");
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [clubName, setClubName] = useState("GenZone");
+  const [logoError, setLogoError] = useState(false);
 
   useEffect(() => {
     supabase
@@ -40,7 +41,18 @@ export function Nav() {
   return (
     <>
       <a href="#home" className="fixed left-4 top-4 z-50 md:left-8 md:top-6" aria-label={`${clubName} home`}>
-        <img src={displayLogo} alt={clubName} className="w-14 mix-blend-screen transition-transform hover:rotate-12 md:w-16" />
+        {!logoError ? (
+          <img
+            src={displayLogo}
+            alt={clubName}
+            className="w-14 mix-blend-screen transition-transform hover:rotate-12 md:w-16"
+            onError={() => setLogoError(true)}
+          />
+        ) : (
+          <span className="font-display text-xl font-black tracking-widest text-white hover:rotate-12 transition-transform inline-block">
+            GEN<span className="text-cyan">ZONE</span>
+          </span>
+        )}
       </a>
 
       {/* Desktop: vertical pill rail */}
