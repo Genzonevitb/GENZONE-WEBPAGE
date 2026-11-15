@@ -1,6 +1,5 @@
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState } from "react";
-import logo from "@/assets/genzone-logo.png.asset.json";
 import { supabase } from "@/lib/supabase";
 
 const particles = Array.from({ length: 36 }, (_, i) => ({
@@ -33,7 +32,7 @@ export function Intro({ onDone }: { onDone: () => void }) {
     return () => clearTimeout(t);
   }, []);
 
-  const displayLogo = logoUrl ?? logo.url;
+  const showLogo = !!logoUrl && !logoError;
 
   return (
     <AnimatePresence onExitComplete={onDone}>
@@ -62,9 +61,9 @@ export function Intro({ onDone }: { onDone: () => void }) {
             transition={{ duration: 1.4, delay: 0.3 }}
           />
           {/* Logo or text fallback */}
-          {!logoError ? (
+          {showLogo ? (
             <motion.img
-              src={displayLogo}
+              src={logoUrl!}
               alt={clubName}
               className="logo-glow relative w-[min(62vw,340px)] mix-blend-screen"
               initial={{ scale: 0.3, rotateX: 60, rotateZ: -20, opacity: 0, filter: "blur(20px)" }}

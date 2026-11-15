@@ -1,6 +1,5 @@
 import { motion, useMotionValue, useReducedMotion, useScroll, useSpring, useTransform } from "motion/react";
 import { useEffect, useRef, useState } from "react";
-import logo from "@/assets/genzone-logo.png.asset.json";
 import { supabase } from "@/lib/supabase";
 
 const DEFAULT_LINES = ["NOT ANOTHER", "CLUB. THIS IS", "GENZONE."];
@@ -39,7 +38,7 @@ export function Hero({ ready }: { ready: boolean }) {
       });
   }, []);
 
-  const displayLogo = logoUrl ?? logo.url;
+  const showLogo = !!logoUrl && !logoError;
 
   return (
     <section
@@ -94,9 +93,9 @@ export function Hero({ ready }: { ready: boolean }) {
           transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
         >
           <div className="absolute inset-[10%] animate-spin rounded-full border border-dashed border-cyan/40 [animation-duration:30s]" />
-          {!logoError ? (
+          {showLogo ? (
             <img
-              src={displayLogo}
+              src={logoUrl!}
               alt="GenZone logo"
               className="logo-glow relative w-full mix-blend-screen"
               onError={() => setLogoError(true)}

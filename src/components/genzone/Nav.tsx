@@ -1,6 +1,5 @@
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState } from "react";
-import logo from "@/assets/genzone-logo.png.asset.json";
 import { navItems } from "@/content/genzone";
 import { supabase } from "@/lib/supabase";
 
@@ -36,20 +35,21 @@ export function Nav() {
     return () => obs.disconnect();
   }, []);
 
-  const displayLogo = logoUrl ?? logo.url;
+  /* Show logo image only when a URL exists from DB AND it hasn't errored */
+  const showLogo = !!logoUrl && !logoError;
 
   return (
     <>
       <a href="#home" className="fixed left-4 top-4 z-50 md:left-8 md:top-6" aria-label={`${clubName} home`}>
-        {!logoError ? (
+        {showLogo ? (
           <img
-            src={displayLogo}
+            src={logoUrl!}
             alt={clubName}
-            className="w-14 mix-blend-screen transition-transform hover:rotate-12 md:w-16"
+            className="h-12 w-auto max-w-[56px] object-contain mix-blend-screen transition-transform hover:scale-110 md:max-w-[64px]"
             onError={() => setLogoError(true)}
           />
         ) : (
-          <span className="font-display text-xl font-black tracking-widest text-white hover:rotate-12 transition-transform inline-block">
+          <span className="font-display text-xl font-black tracking-widest text-white transition-opacity hover:opacity-80 inline-block">
             GEN<span className="text-cyan">ZONE</span>
           </span>
         )}
