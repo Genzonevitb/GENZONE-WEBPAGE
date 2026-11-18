@@ -33,12 +33,12 @@ ALTER TABLE settings      ENABLE ROW LEVEL SECURITY;
 --   Admins can SELECT their own row (needed for the JWT check sub-query).
 -- =============================================================================
 
--- Allow admins to read the admins table (sub-query self-check)
-CREATE POLICY "admins: admin select"
+-- Allow any authenticated user to check if their OWN email is in admins.
+-- This avoids a circular dependency (you can't be in admins to read admins).
+CREATE POLICY "admins: authenticated self select"
   ON admins FOR SELECT
-  USING (
-    auth.jwt() ->> 'email' IN (SELECT email FROM admins)
-  );
+  TO authenticated
+  USING (email = auth.jwt() ->> 'email');
 
 -- Explicitly deny all mutations from client (no INSERT / UPDATE / DELETE policies)
 -- Without a permissive policy, RLS blocks them by default.

@@ -1,6 +1,6 @@
 import { motion, useMotionValue, useReducedMotion, useScroll, useSpring, useTransform } from "motion/react";
-import { useEffect, useRef, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { useRef, useState } from "react";
+import { useSiteConfig } from "@/lib/config-context";
 
 const DEFAULT_LINES = ["NOT ANOTHER", "CLUB. THIS IS", "GENZONE."];
 const DEFAULT_SUBTITLE = "Where creativity gets louder, ideas get bolder, and possibilities have no limits.";
@@ -16,28 +16,14 @@ export function Hero({ ready }: { ready: boolean }) {
   const rx = useSpring(useTransform(my, [-0.5, 0.5], [12, -12]), { stiffness: 80, damping: 15 });
   const ry = useSpring(useTransform(mx, [-0.5, 0.5], [-14, 14]), { stiffness: 80, damping: 15 });
 
-  const [lines, setLines] = useState(DEFAULT_LINES);
-  const [subtitle, setSubtitle] = useState(DEFAULT_SUBTITLE);
-  const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [logoError, setLogoError] = useState(false);
 
-  useEffect(() => {
-    supabase
-      .from("settings")
-      .select("key, value")
-      .in("key", ["hero_line_1", "hero_line_2", "hero_line_3", "hero_subtitle", "logo_url"])
-      .then(({ data }) => {
-        if (!data) return;
-        const s = Object.fromEntries(data.map((r) => [r.key, r.value ?? ""]));
-        const l1 = s["hero_line_1"] || DEFAULT_LINES[0];
-        const l2 = s["hero_line_2"] || DEFAULT_LINES[1];
-        const l3 = s["hero_line_3"] || DEFAULT_LINES[2];
-        setLines([l1, l2, l3]);
-        if (s["hero_subtitle"]) setSubtitle(s["hero_subtitle"]);
-        if (s["logo_url"]) setLogoUrl(s["logo_url"]);
-      });
-  }, []);
-
+  const config = useSiteConfig();
+  const heroConf = (config["hero_config"] as any) ?? {};
+  const siteId = (config["site_identity"] as any) ?? {};
+  const lines = [heroConf.line1 || DEFAULT_LINES[0], heroConf.line2 || DEFAULT_LINES[1], heroConf.line3 || DEFAULT_LINES[2]];
+  const subtitle = heroConf.subtitle || DEFAULT_SUBTITLE;
+  const logoUrl = siteId.logo_url || (config["logo_url"] as string) || null;
   const showLogo = !!logoUrl && !logoError;
 
   return (

@@ -1,9 +1,9 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
-import logo from "@/assets/genzone-logo.png.asset.json";
 import { contact as fallbackContact } from "@/content/genzone";
 import { supabase } from "@/lib/supabase";
 import { SectionTag, SplitHeading } from "./shared";
+import { useSiteConfig } from "@/lib/config-context";
 
 const kinds = ["Idea", "Feedback", "Collab", "Other"];
 const field = "w-full border-0 border-b-2 bg-transparent py-4 text-lg outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-cyan";
@@ -12,17 +12,12 @@ export function Feedback() {
   const [kind, setKind] = useState("Idea");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
-  const [fbSettings, setFbSettings] = useState<Record<string, string>>({});
 
-  useEffect(() => {
-    supabase
-      .from("settings")
-      .select("key, value")
-      .in("key", ["feedback_label", "feedback_heading", "feedback_subtitle"])
-      .then(({ data }) => {
-        if (data) setFbSettings(Object.fromEntries(data.map((r) => [r.key, r.value ?? ""])));
-      });
-  }, []);
+  const config = useSiteConfig();
+  const sh = (config["section_headings"] as any) ?? {};
+  const fbLabel = sh.feedback_label || (config["feedback_label"] as string) || "Suggestions & Feedback";
+  const fbHeading = sh.feedback_heading || (config["feedback_heading"] as string) || "Got something loud to say?";
+  const fbSubtitle = sh.feedback_subtitle || (config["feedback_subtitle"] as string) || "Ideas, rants, collabs — drop them here. The panel reads everything.";
 
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -50,10 +45,6 @@ export function Feedback() {
       setSubmitting(false);
     }
   }
-
-  const fbLabel = fbSettings["feedback_label"] || "Suggestions & Feedback";
-  const fbHeading = fbSettings["feedback_heading"] || "Got something loud to say?";
-  const fbSubtitle = fbSettings["feedback_subtitle"] || "Ideas, rants, collabs — drop them here. The panel reads everything.";
 
   return (
     <section id="feedback" className="relative overflow-hidden bg-charcoal px-5 py-28 md:px-16 md:py-40">
@@ -96,58 +87,112 @@ export function Feedback() {
   );
 }
 
+const COLOR_MAP: Record<string, string> = {
+  cyan: '#00f0ff',
+  pink: '#ff007f',
+  yellow: '#ffe600',
+  white: '#ffffff',
+};
+
 export function Footer() {
-  const [settings, setSettings] = useState<Record<string, string>>({});
+  const config = useSiteConfig();
 
-  useEffect(() => {
-    supabase
-      .from("settings")
-      .select("key, value")
-      .then(({ data }) => {
-        if (data) {
-          setSettings(Object.fromEntries(data.map((r) => [r.key, r.value ?? ""])));
-        }
-      });
-  }, []);
+  // New footer_config (from site_config table)
+  const fc = (config["footer_config"] as any) ?? {};
 
-  const email = settings["contact_email"] || fallbackContact.email;
-  const location = settings["location"] || fallbackContact.location;
-  const clubName = settings["club_name"] || "GenZone";
-  const footerTagline = settings["footer_tagline"] || "Not another club.";
-  const logoUrl = settings["logo_url"] || null;
-  const socials = [
-    { label: "Instagram", href: settings["instagram"] || "#" },
-    { label: "LinkedIn",  href: settings["linkedin"]  || "#" },
-    { label: "YouTube",   href: settings["youtube"]   || "#" },
-    { label: "X",         href: settings["twitter"]   || "#" },
+  // Fallbacks from legacy settings / site_identity
+  const siteId = (config["site_identity"] as any) ?? {};
+  const clubName = siteId.club_name || (config["club_name"] as string) || "GenZone";
+  const logoUrl   = siteId.logo_url  || (config["logo_url"] as string)  || null;
+  const displayLogo = logoUrl || "/genzone-fallback.svg";
+
+  // Footer config values with fallbacks
+  const ghostText         = fc.ghost_text          ?? clubName.toUpperCase();
+  const ghostVisible      = fc.ghost_text_visible  !== false;
+  const ghostFrom         = fc.ghost_text_gradient_from ?? '#00bfff';
+  const ghostTo           = fc.ghost_text_gradient_to   ?? '#ff69b4';
+  const ghostOpacity      = (fc.ghost_text_opacity ?? 100) / 100;
+  const logoVisible       = fc.logo_visible         !== false;
+  const contactHeading    = fc.contact_heading      ?? 'Contact';
+  const contactColor      = COLOR_MAP[fc.contact_heading_color ?? 'cyan'];
+  const email             = fc.contact_email    || siteId.contact_email || (config["contact_email"] as string) || fallbackContact.email;
+  const location          = fc.contact_location || siteId.location      || (config["location"] as string)      || fallbackContact.location;
+  const followHeading     = fc.follow_heading   ?? 'Follow';
+  const followColor       = COLOR_MAP[fc.follow_heading_color ?? 'pink'];
+  const copyrightLeft     = (fc.copyright_left  ?? `© {year} ${clubName.toUpperCase()}`).replace('{year}', String(new Date().getFullYear()));
+  const copyrightRight    = fc.copyright_right  ?? (siteId.footer_tagline || (config["footer_tagline"] as string) || "Turning Trends Into Tradition");
+  const bgColor           = fc.bg_color         ?? 'transparent';
+  const paddingTop        = fc.padding_top       ?? 96;
+  const paddingBottom     = fc.padding_bottom    ?? 40;
+
+  // Social links: use admin-defined list if available, otherwise fall back to settings
+  const socials: { label: string; href: string; color?: string }[] = fc.socials ?? [
+    { label: "Instagram", href: siteId.instagram || (config["instagram"] as string) || "#" },
+    { label: "LinkedIn",  href: siteId.linkedin  || (config["linkedin"] as string)  || "#" },
+    { label: "YouTube",   href: siteId.youtube   || (config["youtube"] as string)   || "#" },
+    { label: "X",         href: siteId.twitter   || (config["twitter"] as string)   || "#" },
   ];
 
-  const displayLogo = logoUrl || logo.url;
-
   return (
-    <footer className="relative overflow-hidden px-5 pb-10 pt-24 md:px-16">
+    <footer
+      className="relative overflow-hidden px-5 md:px-16"
+      style={{ backgroundColor: bgColor === 'transparent' ? undefined : bgColor, paddingTop, paddingBottom }}
+    >
       <div className="grid gap-12 md:grid-cols-[auto_1fr_1fr]">
-        <img src={displayLogo} alt={clubName} className="logo-glow w-32 mix-blend-screen md:w-40" />
+        {logoVisible && (
+          <img src={displayLogo} alt={clubName} className="logo-glow w-32 mix-blend-screen md:w-40" />
+        )}
         <div>
-          <p className="mb-4 font-mono text-xs uppercase tracking-widest text-cyan">Contact</p>
+          <p className="mb-4 font-mono text-xs uppercase tracking-widest" style={{ color: contactColor }}>
+            {contactHeading}
+          </p>
           <a href={`mailto:${email}`} className="block text-lg hover:text-pink">{email}</a>
           <p className="text-muted-foreground">{location}</p>
         </div>
         <div>
-          <p className="mb-4 font-mono text-xs uppercase tracking-widest text-pink">Follow</p>
+          <p className="mb-4 font-mono text-xs uppercase tracking-widest" style={{ color: followColor }}>
+            {followHeading}
+          </p>
           <ul className="flex flex-wrap gap-3">
             {socials.map((s) => (
               <li key={s.label}>
-                <a href={s.href} className="inline-block rounded-full border px-4 py-2 text-sm transition-all hover:-translate-y-1 hover:border-yellow hover:text-yellow">{s.label} ↗</a>
+                <a
+                  href={s.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block rounded-full border px-4 py-2 text-sm transition-all hover:-translate-y-1 hover:border-yellow"
+                  style={{ color: s.color ? COLOR_MAP[s.color] ?? undefined : undefined }}
+                >
+                  {s.label} ↗
+                </a>
               </li>
             ))}
           </ul>
         </div>
       </div>
-      <p className="mt-20 select-none text-center font-display text-[18vw] font-black leading-none text-neon" aria-hidden>{clubName.toUpperCase()}</p>
+
+      {/* Giant ghost / wordmark text */}
+      {ghostVisible && (
+        <p
+          className="mt-20 select-none text-center font-display font-black leading-none"
+          style={{
+            fontSize: '18vw',
+            background: `linear-gradient(90deg, ${ghostFrom}, ${ghostTo})`,
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+            opacity: ghostOpacity,
+          }}
+          aria-hidden
+        >
+          {ghostText}
+        </p>
+      )}
+
+      {/* Copyright bar */}
       <div className="mt-6 flex flex-col justify-between gap-2 border-t pt-6 font-mono text-xs uppercase tracking-widest text-muted-foreground md:flex-row">
-        <span>© {new Date().getFullYear()} {clubName}</span>
-        <span>{footerTagline}</span>
+        <span>{copyrightLeft}</span>
+        <span>{copyrightRight}</span>
       </div>
     </footer>
   );

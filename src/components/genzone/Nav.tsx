@@ -1,27 +1,18 @@
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState } from "react";
 import { navItems } from "@/content/genzone";
-import { supabase } from "@/lib/supabase";
+import { useSiteConfig } from "@/lib/config-context";
 
 export function Nav() {
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState("home");
-  const [logoUrl, setLogoUrl] = useState<string | null>(null);
-  const [clubName, setClubName] = useState("GenZone");
   const [logoError, setLogoError] = useState(false);
 
-  useEffect(() => {
-    supabase
-      .from("settings")
-      .select("key, value")
-      .in("key", ["logo_url", "club_name"])
-      .then(({ data }) => {
-        if (!data) return;
-        const s = Object.fromEntries(data.map((r) => [r.key, r.value ?? ""]));
-        if (s["logo_url"]) setLogoUrl(s["logo_url"]);
-        if (s["club_name"]) setClubName(s["club_name"]);
-      });
-  }, []);
+  const config = useSiteConfig();
+  const siteId = (config["site_identity"] as any) ?? {};
+  const logoUrl = siteId.logo_url || (config["logo_url"] as string) || null;
+  const clubName = siteId.club_name || (config["club_name"] as string) || "GenZone";
+  const showLogo = !!logoUrl && !logoError;
 
   useEffect(() => {
     const obs = new IntersectionObserver(
@@ -34,9 +25,6 @@ export function Nav() {
     });
     return () => obs.disconnect();
   }, []);
-
-  /* Show logo image only when a URL exists from DB AND it hasn't errored */
-  const showLogo = !!logoUrl && !logoError;
 
   return (
     <>

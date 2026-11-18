@@ -5,6 +5,7 @@ import { Nav } from "@/components/genzone/Nav";
 import { Hero } from "@/components/genzone/Hero";
 import { About, Events, Gallery, Panel } from "@/components/genzone/Sections";
 import { Feedback, Footer } from "@/components/genzone/Feedback";
+import { SiteConfigProvider } from "@/lib/config-context";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -21,18 +22,20 @@ export const Route = createFileRoute("/")({
 function Index() {
   const [ready, setReady] = useState(false);
   return (
-    <div className="grain">
-      <Intro onDone={() => setReady(true)} />
-      <Nav />
-      <main>
-        <Hero ready={ready} />
-        <About />
-        <Events />
-        <Gallery />
-        <Panel />
-        <Feedback />
-      </main>
-      <Footer />
-    </div>
+    <SiteConfigProvider>
+      <div className="grain">
+        <Intro onDone={() => setReady(true)} />
+        <Nav />
+        <main>
+          <Hero ready={ready} />
+          <About />
+          <Events />
+          <Gallery />
+          <Panel />
+          <Feedback />
+        </main>
+        <Footer />
+      </div>
+    </SiteConfigProvider>
   );
 }
