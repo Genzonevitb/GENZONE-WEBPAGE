@@ -154,19 +154,21 @@ export function Footer() {
             {followHeading}
           </p>
           <ul className="flex flex-wrap gap-3">
-            {socials.map((s) => (
-              <li key={s.label}>
-                <a
-                  href={s.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-block rounded-full border px-4 py-2 text-sm transition-all hover:-translate-y-1 hover:border-yellow"
-                  style={{ color: s.color ? COLOR_MAP[s.color] ?? undefined : undefined }}
-                >
-                  {s.label} ↗
-                </a>
-              </li>
-            ))}
+            {socials
+              .filter((s) => s.href && s.href !== '#' && s.href.startsWith('http'))
+              .map((s) => (
+                <li key={s.label}>
+                  <a
+                    href={s.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-block rounded-full border px-4 py-2 text-sm transition-all hover:-translate-y-1 hover:border-yellow"
+                    style={{ color: s.color ? COLOR_MAP[s.color] ?? undefined : undefined }}
+                  >
+                    {s.label} ↗
+                  </a>
+                </li>
+              ))}
           </ul>
         </div>
       </div>
