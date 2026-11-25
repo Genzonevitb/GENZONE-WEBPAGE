@@ -185,7 +185,7 @@ export function GalleryShowcase({
       <div className="gallery-showcase__toolbar">
         <div className="gallery-showcase__heading">
           <h3>Collections</h3>
-          <p>Drag to browse · Click an album to explore</p>
+          <p>Swipe or drag to browse · Tap an album</p>
         </div>
       </div>
 

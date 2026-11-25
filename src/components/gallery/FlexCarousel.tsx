@@ -476,6 +476,7 @@ export const FlexCarousel = ({
     let resnap = false;
     let hover = '';
     let lift = 1;
+    let lastHalfPx = '';
     let energy = 0;
     let lastPos = 0;
     const lens = { x: 0, y: 0, vx: 0, vy: 0, ready: false };
@@ -579,16 +580,22 @@ export const FlexCarousel = ({
     };
 
     const metrics = s => {
-      const cardH = Math.max(24, s.cardHeight * height);
+      const baseCardH = Math.max(24, s.cardHeight * height);
       const fixed = FIT_ASPECT[s.fit];
-      const widths = slots.map(slot => (fixed || slot.aspect) * cardH);
+      const maxW = Math.max(120, width * (width < 640 ? 0.82 : 0.9));
+      const heights = slots.map(slot => {
+        const aspect = fixed || slot.aspect || 1;
+        const rawW = aspect * baseCardH;
+        return rawW > maxW ? maxW / aspect : baseCardH;
+      });
+      const widths = slots.map((slot, i) => (fixed || slot.aspect || 1) * heights[i]);
       const centers = [];
       let cursor = 0;
       for (let i = 0; i < widths.length; i++) {
         centers.push(cursor + widths[i] / 2);
         cursor += widths[i] + s.gap;
       }
-      return { cardH, widths, centers, gap: s.gap, loop: Math.max(cursor, 1) };
+      return { cardH: baseCardH, heights, widths, centers, gap: s.gap, loop: Math.max(cursor, 1) };
     };
 
     const nearest = (m, at) => {
@@ -881,11 +888,19 @@ export const FlexCarousel = ({
       const focusAmount = clamp01(focus.t);
       const focusEase = easeInOut(focusAmount);
       const focusW = focus.index >= 0 && focus.index < n ? m.widths[focus.index] : m.cardH;
-      const focusScale = Math.max(1, Math.min(1.3, (height * 0.84) / m.cardH, (width * 0.92) / focusW));
+      const focusH = focus.index >= 0 && focus.index < n ? (m.heights?.[focus.index] ?? m.cardH) : m.cardH;
+      const maxFocusH = width < 640 ? height * 0.72 : height * 0.84;
+      const focusScale = Math.max(1, Math.min(1.3, maxFocusH / Math.max(focusH, 1), (width * 0.94) / Math.max(focusW, 1)));
       const nextLift = 1 + (focusScale - 1) * focusEase;
       if (Math.abs(nextLift - lift) > 0.0005) {
         lift = nextLift;
         container.style.setProperty('--flex-carousel-lift', lift.toFixed(4));
+      }
+      const activeCardH = m.heights?.[current] ?? m.cardH;
+      const halfStr = `${Math.round(activeCardH / 2)}px`;
+      if (halfStr !== lastHalfPx) {
+        lastHalfPx = halfStr;
+        container.style.setProperty('--flex-carousel-half', halfStr);
       }
 
       const effects = introEffects();
@@ -956,8 +971,9 @@ export const FlexCarousel = ({
               }
             }
             const cw = w * scale;
+            const ch = (m.heights?.[i] ?? cardH) * scale;
             if (alpha <= 0.001 || x + cw / 2 < -40 || x - cw / 2 > width + 40) continue;
-            draws.push({ i, rel, x, y: homeY + (fx ? fx.y : 0), cw, ch: cardH * scale, alpha });
+            draws.push({ i, rel, x, y: homeY + (fx ? fx.y : 0), cw, ch, alpha });
           }
         }
         draws.sort((a, b) => Math.abs(b.rel) - Math.abs(a.rel));

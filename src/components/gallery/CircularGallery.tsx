@@ -481,7 +481,8 @@ export const CircularGallery = ({
       const s = settingsRef.current;
       const height = 0.6 * view.height * s.itemSize;
       const width = height * s.itemAspect;
-      const scale = Math.min(1, (view.width * 0.82) / width);
+      const widthRatio = view.width < 560 ? 0.68 : 0.82;
+      const scale = Math.min(1, (view.width * widthRatio) / width);
       return { w: width * scale, h: height * scale, spacing: width * scale * (1 + s.gap) };
     };
 

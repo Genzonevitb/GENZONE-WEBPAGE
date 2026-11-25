@@ -30,14 +30,24 @@
 
 .flex-carousel__caption {
   position: absolute;
-  left: 0;
-  right: 0;
-  top: calc(50% + var(--flex-carousel-half) * var(--flex-carousel-lift, 1) + 22px);
+  left: 50%;
+  transform: translateX(-50%);
+  top: min(
+    calc(50% + var(--flex-carousel-half) * var(--flex-carousel-lift, 1) + 18px),
+    calc(100% - 76px - env(safe-area-inset-bottom))
+  );
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
-  padding: 0 16px;
+  gap: 5px;
+  width: fit-content;
+  max-width: calc(100% - 32px);
+  padding: 8px 16px;
+  border-radius: 14px;
+  background: rgb(10 10 14 / 70%);
+  border: 1px solid rgb(255 255 255 / 12%);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   pointer-events: none;
   text-align: center;
   animation: flex-carousel-reveal 900ms ease both;

@@ -1287,10 +1287,10 @@ export function Gallery() {
   }, [albums, photos]);
 
   return (
-    <section id="gallery" className="bg-charcoal px-5 py-28 md:px-16 md:py-40">
+    <section id="gallery" className="bg-charcoal overflow-x-clip px-5 py-16 sm:py-24 md:px-16 md:py-40">
       <SectionTag n="03" label={label} />
-      <div className="mb-12 flex flex-col justify-between gap-8 md:flex-row md:items-end">
-        <SplitHeading text={heading} className="font-display text-5xl font-black uppercase md:text-8xl" />
+      <div className="mb-8 flex flex-col justify-between gap-6 md:mb-12 md:flex-row md:items-end md:gap-8">
+        <SplitHeading text={heading} className="font-display text-3xl sm:text-5xl font-black uppercase md:text-8xl break-words" />
       </div>
 
       {mappedAlbums.length === 0 ? (
@@ -1300,7 +1300,7 @@ export function Gallery() {
             : "No albums yet — create an album from the admin panel."}
         </p>
       ) : (
-        <GalleryShowcase albums={mappedAlbums} height="clamp(440px, 68vh, 620px)" />
+        <GalleryShowcase albums={mappedAlbums} height="clamp(360px, 58dvh, 620px)" />
       )}
     </section>
   );
