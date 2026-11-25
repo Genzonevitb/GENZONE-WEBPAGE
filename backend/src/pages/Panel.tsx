@@ -13,7 +13,7 @@ import {
   ChevronDown,
   UserCircle2,
   EyeOff,
-  Eye,
+  CreditCard,
 } from 'lucide-react'
 import ImageDropzone from '@/components/ImageDropzone'
 import ConfirmDialog from '@/components/ConfirmDialog'
@@ -37,16 +37,24 @@ interface PanelMember {
   joined_date?: string | null
   social_instagram?: string | null
   social_linkedin?: string | null
+  instagram_url?: string | null
+  linkedin_url?: string | null
   social_github?: string | null
   social_x?: string | null
   social_email?: string | null
   social_portfolio?: string | null
+  github_url?: string | null
+  x_url?: string | null
+  portfolio_url?: string | null
+  social_visibility?: Record<string, boolean> | null
   social_custom_url?: string | null
   social_custom_label?: string | null
   focal_point?: string | null
   accent_color_hex?: string | null
   hidden?: boolean
   show_fields?: any
+  member_code?: string | null
+  card_overrides?: Record<string, any> | null
 }
 
 const ACCENTS = [
@@ -80,15 +88,25 @@ interface FormState {
   joined_date: string
   social_instagram: string
   social_linkedin: string
+  instagram_url: string
+  linkedin_url: string
+  github_url: string
+  x_url: string
+  portfolio_url: string
   social_github: string
   social_x: string
   social_email: string
   social_portfolio: string
+  social_visibility: Record<string, boolean>
   social_custom_label: string
   social_custom_url: string
   focal_point: string
   accent_color_hex: string
   hidden: boolean
+  member_code: string
+  card_overrides_finish: string
+  card_overrides_orientation: string
+  card_overrides_strapColor: string
 }
 
 const EMPTY_FORM: FormState = {
@@ -106,15 +124,32 @@ const EMPTY_FORM: FormState = {
   joined_date: '',
   social_instagram: '',
   social_linkedin: '',
+  instagram_url: '',
+  linkedin_url: '',
+  github_url: '',
+  x_url: '',
+  portfolio_url: '',
   social_github: '',
   social_x: '',
   social_email: '',
   social_portfolio: '',
+  social_visibility: {
+    instagram: true,
+    linkedin: true,
+    github: true,
+    x: true,
+    portfolio: true,
+    email: true,
+  },
   social_custom_label: '',
   social_custom_url: '',
   focal_point: '50% 50%',
   accent_color_hex: '#00ffff',
   hidden: false,
+  member_code: '',
+  card_overrides_finish: '',
+  card_overrides_orientation: '',
+  card_overrides_strapColor: '',
 }
 
 function MemberCard({
@@ -168,6 +203,9 @@ function MemberCard({
           <div className="flex items-center gap-2 mb-0.5">
             <AccentDot accent={member.accent} customHex={member.accent_color_hex} />
             <span className="font-display text-sm font-bold text-white truncate">{member.name}</span>
+            <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-white/10 text-cyan border border-cyan/30">
+              {`GZ-${String(Math.max(1, member.sort_order || 1)).padStart(3, '0')}`}
+            </span>
             {member.hidden && (
               <span className="font-mono text-[9px] uppercase px-1.5 py-0.2 rounded bg-pink/20 text-pink border border-pink/30">
                 Hidden
@@ -180,6 +218,24 @@ function MemberCard({
               {[member.department, member.year_batch].filter(Boolean).join(' • ')}
             </p>
           )}
+          {(() => {
+            const activeTags: string[] = []
+            if (member.instagram_url || member.social_instagram) activeTags.push('IG')
+            if (member.linkedin_url || member.social_linkedin) activeTags.push('LI')
+            if (member.github_url || member.social_github) activeTags.push('GH')
+            if (member.x_url || member.social_x) activeTags.push('X')
+            if (member.portfolio_url || member.social_portfolio) activeTags.push('WEB')
+            if (member.social_email) activeTags.push('EMAIL')
+            return (
+              <p className="font-mono text-[10px] mt-1 truncate">
+                {activeTags.length > 0 ? (
+                  <span className="text-cyan/90">Card socials: {activeTags.join(' · ')}</span>
+                ) : (
+                  <span className="text-muted-foreground/50">No card social links</span>
+                )}
+              </p>
+            )
+          })()}
         </div>
       </div>
 
@@ -221,6 +277,50 @@ function MemberCard({
       </div>
     </div>
   )
+}
+
+type SocialFieldPlatform = 'instagram' | 'linkedin' | 'github' | 'x' | 'portfolio'
+
+function normalizeSocialUrl(input: string, platform: SocialFieldPlatform): { url: string | null; error?: string } {
+  const trimmed = input.trim()
+  if (!trimmed) return { url: null }
+
+  const lower = trimmed.toLowerCase()
+  if (lower.startsWith('javascript:') || lower.startsWith('data:') || lower.startsWith('vbscript:')) {
+    return { url: null, error: `Invalid ${platform} URL: script and unsafe schemes are rejected.` }
+  }
+
+  // Scheme present?
+  if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(trimmed)) {
+    if (!lower.startsWith('https://')) {
+      return { url: null, error: `Only HTTPS URLs are permitted for ${platform} (e.g. https://${platform === 'portfolio' ? 'example.com' : `${platform}.com/...`}).` }
+    }
+    return { url: trimmed }
+  }
+
+  // Raw handle, domain, or relative path
+  const handle = trimmed.replace(/^@+/, '').trim()
+  if (!handle) return { url: null }
+
+  const clean = handle.replace(/^\/+|\/+$/g, '')
+  if (platform === 'instagram') {
+    if (/^(www\.)?instagram\.com\//i.test(clean)) return { url: `https://${clean}` }
+    return { url: `https://instagram.com/${clean}` }
+  }
+  if (platform === 'linkedin') {
+    if (/^(www\.)?linkedin\.com\//i.test(clean)) return { url: `https://${clean}` }
+    const path = clean.startsWith('in/') ? clean : (clean.includes('/') ? clean : `in/${clean}`)
+    return { url: `https://linkedin.com/${path}` }
+  }
+  if (platform === 'github') {
+    if (/^(www\.)?github\.com\//i.test(clean)) return { url: `https://${clean}` }
+    return { url: `https://github.com/${clean}` }
+  }
+  if (platform === 'x') {
+    if (/^(www\.)?(x|twitter)\.com\//i.test(clean)) return { url: `https://${clean}` }
+    return { url: `https://x.com/${clean}` }
+  }
+  return { url: `https://${clean}` }
 }
 
 export default function Panel() {
@@ -274,15 +374,32 @@ export default function Panel() {
       joined_date: member.joined_date ?? '',
       social_instagram: member.social_instagram ?? '',
       social_linkedin: member.social_linkedin ?? '',
-      social_github: member.social_github ?? '',
-      social_x: member.social_x ?? '',
+      instagram_url: member.instagram_url ?? member.social_instagram ?? '',
+      linkedin_url: member.linkedin_url ?? member.social_linkedin ?? '',
+      github_url: member.github_url ?? member.social_github ?? '',
+      x_url: member.x_url ?? member.social_x ?? '',
+      portfolio_url: member.portfolio_url ?? member.social_portfolio ?? '',
+      social_github: member.social_github ?? member.github_url ?? '',
+      social_x: member.social_x ?? member.x_url ?? '',
       social_email: member.social_email ?? '',
-      social_portfolio: member.social_portfolio ?? '',
+      social_portfolio: member.social_portfolio ?? member.portfolio_url ?? '',
+      social_visibility: {
+        instagram: member.social_visibility?.instagram ?? true,
+        linkedin: member.social_visibility?.linkedin ?? true,
+        github: member.social_visibility?.github ?? true,
+        x: member.social_visibility?.x ?? true,
+        portfolio: member.social_visibility?.portfolio ?? true,
+        email: member.social_visibility?.email ?? true,
+      },
       social_custom_label: member.social_custom_label ?? '',
       social_custom_url: member.social_custom_url ?? '',
       focal_point: member.focal_point || '50% 50%',
       accent_color_hex: member.accent_color_hex || '#00ffff',
       hidden: member.hidden ?? false,
+      member_code: member.member_code ?? `GZ-${String(Math.max(1, member.sort_order || 1)).padStart(3, '0')}`,
+      card_overrides_finish: (member.card_overrides?.finish as string) ?? '',
+      card_overrides_orientation: (member.card_overrides?.orientation as string) ?? '',
+      card_overrides_strapColor: (member.card_overrides?.strapColor as string) ?? '',
     })
     setPortraitFile(null)
     setSheetOpen(true)
@@ -319,7 +436,31 @@ export default function Panel() {
         ? form.achievements.split('\n').map((a) => a.trim()).filter(Boolean)
         : []
 
-      const payload = {
+      const card_overrides: Record<string, any> = {}
+      if (form.card_overrides_finish) card_overrides.finish = form.card_overrides_finish
+      if (form.card_overrides_orientation) card_overrides.orientation = form.card_overrides_orientation
+      if (form.card_overrides_strapColor) card_overrides.strapColor = form.card_overrides_strapColor
+
+      // Normalize and validate social links (HTTPS only)
+      const igResult = normalizeSocialUrl(form.instagram_url, 'instagram')
+      if (igResult.error) { toast.error(igResult.error); setSaving(false); return }
+
+      const liResult = normalizeSocialUrl(form.linkedin_url, 'linkedin')
+      if (liResult.error) { toast.error(liResult.error); setSaving(false); return }
+
+      const ghResult = normalizeSocialUrl(form.github_url, 'github')
+      if (ghResult.error) { toast.error(ghResult.error); setSaving(false); return }
+
+      const xResult = normalizeSocialUrl(form.x_url, 'x')
+      if (xResult.error) { toast.error(xResult.error); setSaving(false); return }
+
+      const pfResult = normalizeSocialUrl(form.portfolio_url, 'portfolio')
+      if (pfResult.error) { toast.error(pfResult.error); setSaving(false); return }
+
+      // Badge ID is strictly derived from member sort_order (padded to 3 digits)
+      const memberCode = `GZ-${String(Math.max(1, form.sort_order || 1)).padStart(3, '0')}`
+
+      const payload: Record<string, any> = {
         name: form.name.trim(),
         role: form.role.trim(),
         accent: form.accent,
@@ -332,30 +473,74 @@ export default function Panel() {
         achievements: achievementsArray,
         fun_fact: form.fun_fact.trim() || null,
         joined_date: form.joined_date || null,
-        social_instagram: form.social_instagram.trim() || null,
-        social_linkedin: form.social_linkedin.trim() || null,
-        social_github: form.social_github.trim() || null,
-        social_x: form.social_x.trim() || null,
+        social_instagram: igResult.url,
+        social_linkedin: liResult.url,
+        instagram_url: igResult.url || '',
+        linkedin_url: liResult.url || '',
+        github_url: ghResult.url || '',
+        x_url: xResult.url || '',
+        portfolio_url: pfResult.url || '',
+        social_github: ghResult.url,
+        social_x: xResult.url,
         social_email: form.social_email.trim() || null,
-        social_portfolio: form.social_portfolio.trim() || null,
+        social_portfolio: pfResult.url,
+        social_visibility: form.social_visibility,
         social_custom_label: form.social_custom_label.trim() || null,
         social_custom_url: form.social_custom_url.trim() || null,
         focal_point: form.focal_point.trim() || '50% 50%',
         accent_color_hex: form.accent_color_hex.trim() || null,
         hidden: form.hidden,
+        member_code: memberCode,
+        card_overrides: Object.keys(card_overrides).length > 0 ? card_overrides : null,
         portrait_url,
         portrait_path,
       }
 
+      let saveError: any = null
+      const stripExtendedCols = (src: Record<string, any>) => {
+        const copy = { ...src }
+        delete copy.instagram_url
+        delete copy.linkedin_url
+        delete copy.github_url
+        delete copy.x_url
+        delete copy.portfolio_url
+        delete copy.social_visibility
+        return copy
+      }
       if (editing) {
         const { error } = await supabase.from('panel_members').update(payload).eq('id', editing.id)
-        if (error) throw error
-        toast.success('Member updated.')
+        if (error) {
+          if (
+            error.message?.includes('instagram_url') ||
+            error.message?.includes('linkedin_url') ||
+            error.message?.includes('github_url') ||
+            error.message?.includes('social_visibility')
+          ) {
+            const retry = await supabase.from('panel_members').update(stripExtendedCols(payload)).eq('id', editing.id)
+            if (retry.error) saveError = retry.error
+          } else {
+            saveError = error
+          }
+        }
       } else {
         const { error } = await supabase.from('panel_members').insert(payload)
-        if (error) throw error
-        toast.success('Member added.')
+        if (error) {
+          if (
+            error.message?.includes('instagram_url') ||
+            error.message?.includes('linkedin_url') ||
+            error.message?.includes('github_url') ||
+            error.message?.includes('social_visibility')
+          ) {
+            const retry = await supabase.from('panel_members').insert(stripExtendedCols(payload))
+            if (retry.error) saveError = retry.error
+          } else {
+            saveError = error
+          }
+        }
       }
+
+      if (saveError) throw saveError
+      toast.success(editing ? 'Member updated.' : 'Member added.')
 
       closeSheet()
       await fetchMembers()
@@ -737,69 +922,138 @@ export default function Panel() {
 
               {/* SECTION: SOCIAL PROFILES */}
               <div className="space-y-4 pt-4">
-                <h3 className="font-mono text-xs font-bold text-yellow uppercase tracking-wider border-b border-border/60 pb-2">
-                  Social Links
-                </h3>
+                <div className="flex items-center justify-between border-b border-border/60 pb-2">
+                  <h3 className="font-mono text-xs font-bold text-yellow uppercase tracking-wider">
+                    Social Profiles
+                  </h3>
+                  <span className="font-mono text-[10px] text-muted-foreground">
+                    Accepts @handle or full https:// URL
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Instagram (Primary) */}
+                  <div className="p-3 rounded-xl border border-pink/30 bg-pink/5 space-y-1.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <label className="font-mono text-[10px] text-pink font-bold uppercase tracking-widest">
+                        Instagram (Main Action)
+                      </label>
+                      <label className="flex items-center gap-1.5 font-mono text-[10px] text-white/75 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={form.social_visibility.instagram !== false}
+                          onChange={(e) => setForm({ ...form, social_visibility: { ...form.social_visibility, instagram: e.target.checked } })}
+                          className="accent-pink h-3.5 w-3.5 rounded"
+                        />
+                        Show on card
+                      </label>
+                    </div>
+                    <input
+                      type="text"
+                      value={form.instagram_url}
+                      onChange={(e) => setForm({ ...form, instagram_url: e.target.value })}
+                      className="w-full bg-background border border-pink/40 rounded-lg px-3 py-2 text-white text-sm font-mono focus:outline-none focus:ring-2 focus:ring-pink/50 focus:border-pink transition-all"
+                      placeholder="@handle or https://instagram.com/..."
+                    />
+                    <p className="font-mono text-[10px] text-muted-foreground/75 leading-tight">
+                      Normalizes @handle or name to https://instagram.com/... (HTTPS only).
+                    </p>
+                  </div>
+
+                  {/* LinkedIn (Secondary) */}
+                  <div className="p-3 rounded-xl border border-cyan/30 bg-cyan/5 space-y-1.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <label className="font-mono text-[10px] text-cyan font-bold uppercase tracking-widest">
+                        LinkedIn Profile
+                      </label>
+                      <label className="flex items-center gap-1.5 font-mono text-[10px] text-white/75 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={form.social_visibility.linkedin !== false}
+                          onChange={(e) => setForm({ ...form, social_visibility: { ...form.social_visibility, linkedin: e.target.checked } })}
+                          className="accent-cyan h-3.5 w-3.5 rounded"
+                        />
+                        Show on card
+                      </label>
+                    </div>
+                    <input
+                      type="text"
+                      value={form.linkedin_url}
+                      onChange={(e) => setForm({ ...form, linkedin_url: e.target.value })}
+                      className="w-full bg-background border border-cyan/40 rounded-lg px-3 py-2 text-white text-sm font-mono focus:outline-none focus:ring-2 focus:ring-cyan/50 focus:border-cyan transition-all"
+                      placeholder="@handle or https://linkedin.com/in/..."
+                    />
+                    <p className="font-mono text-[10px] text-muted-foreground/75 leading-tight">
+                      Normalizes @handle or name to https://linkedin.com/in/... (HTTPS only).
+                    </p>
+                  </div>
+                </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block font-mono text-[10px] text-muted-foreground uppercase tracking-widest mb-1.5">
-                      LinkedIn URL
-                    </label>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block font-mono text-[10px] text-muted-foreground uppercase tracking-widest">
+                        GitHub
+                      </label>
+                      <label className="flex items-center gap-1.5 font-mono text-[10px] text-white/65 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={form.social_visibility.github !== false}
+                          onChange={(e) => setForm({ ...form, social_visibility: { ...form.social_visibility, github: e.target.checked } })}
+                          className="accent-cyan h-3 w-3 rounded"
+                        />
+                        Show
+                      </label>
+                    </div>
                     <input
                       type="text"
-                      value={form.social_linkedin}
-                      onChange={(e) => setForm({ ...form, social_linkedin: e.target.value })}
+                      value={form.github_url}
+                      onChange={(e) => setForm({ ...form, github_url: e.target.value, social_github: e.target.value })}
                       className="w-full bg-background border border-border rounded-lg px-3 py-2.5 text-white text-sm font-mono focus:outline-none focus:border-cyan"
-                      placeholder="https://linkedin.com/in/..."
+                      placeholder="@username or https://github.com/..."
                     />
                   </div>
                   <div>
-                    <label className="block font-mono text-[10px] text-muted-foreground uppercase tracking-widest mb-1.5">
-                      GitHub URL
-                    </label>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block font-mono text-[10px] text-muted-foreground uppercase tracking-widest">
+                        X (Twitter)
+                      </label>
+                      <label className="flex items-center gap-1.5 font-mono text-[10px] text-white/65 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={form.social_visibility.x !== false}
+                          onChange={(e) => setForm({ ...form, social_visibility: { ...form.social_visibility, x: e.target.checked } })}
+                          className="accent-cyan h-3 w-3 rounded"
+                        />
+                        Show
+                      </label>
+                    </div>
                     <input
                       type="text"
-                      value={form.social_github}
-                      onChange={(e) => setForm({ ...form, social_github: e.target.value })}
+                      value={form.x_url}
+                      onChange={(e) => setForm({ ...form, x_url: e.target.value, social_x: e.target.value })}
                       className="w-full bg-background border border-border rounded-lg px-3 py-2.5 text-white text-sm font-mono focus:outline-none focus:border-cyan"
-                      placeholder="https://github.com/..."
+                      placeholder="@handle or https://x.com/..."
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block font-mono text-[10px] text-muted-foreground uppercase tracking-widest mb-1.5">
-                      Instagram URL
-                    </label>
-                    <input
-                      type="text"
-                      value={form.social_instagram}
-                      onChange={(e) => setForm({ ...form, social_instagram: e.target.value })}
-                      className="w-full bg-background border border-border rounded-lg px-3 py-2.5 text-white text-sm font-mono focus:outline-none focus:border-cyan"
-                      placeholder="https://instagram.com/..."
-                    />
-                  </div>
-                  <div>
-                    <label className="block font-mono text-[10px] text-muted-foreground uppercase tracking-widest mb-1.5">
-                      X (Twitter) URL
-                    </label>
-                    <input
-                      type="text"
-                      value={form.social_x}
-                      onChange={(e) => setForm({ ...form, social_x: e.target.value })}
-                      className="w-full bg-background border border-border rounded-lg px-3 py-2.5 text-white text-sm font-mono focus:outline-none focus:border-cyan"
-                      placeholder="https://x.com/..."
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block font-mono text-[10px] text-muted-foreground uppercase tracking-widest mb-1.5">
-                      Email Address
-                    </label>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block font-mono text-[10px] text-muted-foreground uppercase tracking-widest">
+                        Email Address
+                      </label>
+                      <label className="flex items-center gap-1.5 font-mono text-[10px] text-white/65 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={form.social_visibility.email !== false}
+                          onChange={(e) => setForm({ ...form, social_visibility: { ...form.social_visibility, email: e.target.checked } })}
+                          className="accent-cyan h-3 w-3 rounded"
+                        />
+                        Show
+                      </label>
+                    </div>
                     <input
                       type="email"
                       value={form.social_email}
@@ -809,16 +1063,83 @@ export default function Panel() {
                     />
                   </div>
                   <div>
-                    <label className="block font-mono text-[10px] text-muted-foreground uppercase tracking-widest mb-1.5">
-                      Portfolio / Website
-                    </label>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block font-mono text-[10px] text-muted-foreground uppercase tracking-widest">
+                        Portfolio / Website
+                      </label>
+                      <label className="flex items-center gap-1.5 font-mono text-[10px] text-white/65 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={form.social_visibility.portfolio !== false}
+                          onChange={(e) => setForm({ ...form, social_visibility: { ...form.social_visibility, portfolio: e.target.checked } })}
+                          className="accent-cyan h-3 w-3 rounded"
+                        />
+                        Show
+                      </label>
+                    </div>
                     <input
                       type="text"
-                      value={form.social_portfolio}
-                      onChange={(e) => setForm({ ...form, social_portfolio: e.target.value })}
+                      value={form.portfolio_url}
+                      onChange={(e) => setForm({ ...form, portfolio_url: e.target.value, social_portfolio: e.target.value })}
                       className="w-full bg-background border border-border rounded-lg px-3 py-2.5 text-white text-sm font-mono focus:outline-none focus:border-cyan"
                       placeholder="https://..."
                     />
+                  </div>
+                </div>
+
+                {/* Preview social buttons on 3D ID card */}
+                <div className="rounded-xl border border-border bg-background/60 p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                      Preview social links on card
+                    </span>
+                    <span className="font-mono text-[10px] text-muted-foreground/70">
+                      Empty links are hidden on 3D cards
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {form.instagram_url.trim() && form.social_visibility.instagram !== false && (
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-[#f09433] via-[#dc2743] to-[#bc1888] px-3 py-1 font-mono text-xs font-bold text-white shadow">
+                        IG @{form.instagram_url.trim().replace(/^https?:\/\/(www\.)?instagram\.com\//i, '').replace(/[/?#].*$/, '').replace(/^@+/, '')}
+                      </span>
+                    )}
+                    {form.linkedin_url.trim() && form.social_visibility.linkedin !== false && (
+                      <span className="inline-flex items-center justify-center rounded-lg bg-[#0a66c2] px-2.5 py-1 font-mono text-xs font-bold text-white shadow">
+                        in
+                      </span>
+                    )}
+                    {form.github_url.trim() && form.social_visibility.github !== false && (
+                      <span className="inline-flex items-center justify-center rounded-lg bg-[#24292e] px-2.5 py-1 font-mono text-xs font-bold text-white border border-white/15">
+                        GH
+                      </span>
+                    )}
+                    {form.x_url.trim() && form.social_visibility.x !== false && (
+                      <span className="inline-flex items-center justify-center rounded-lg bg-[#141418] px-2.5 py-1 font-mono text-xs font-bold text-white border border-white/15">
+                        X
+                      </span>
+                    )}
+                    {form.portfolio_url.trim() && form.social_visibility.portfolio !== false && (
+                      <span className="inline-flex items-center justify-center rounded-lg bg-[#0284c7] px-2.5 py-1 font-mono text-xs font-bold text-white">
+                        WEB
+                      </span>
+                    )}
+                    {form.social_email.trim() && form.social_visibility.email !== false && (
+                      <span className="inline-flex items-center justify-center rounded-lg bg-[#d97706] px-2.5 py-1 font-mono text-xs font-bold text-white">
+                        MAIL
+                      </span>
+                    )}
+                    {!(
+                      (form.instagram_url.trim() && form.social_visibility.instagram !== false) ||
+                      (form.linkedin_url.trim() && form.social_visibility.linkedin !== false) ||
+                      (form.github_url.trim() && form.social_visibility.github !== false) ||
+                      (form.x_url.trim() && form.social_visibility.x !== false) ||
+                      (form.portfolio_url.trim() && form.social_visibility.portfolio !== false) ||
+                      (form.social_email.trim() && form.social_visibility.email !== false)
+                    ) && (
+                      <span className="font-mono text-xs text-yellow/80">
+                        No active social links yet — enter Instagram or LinkedIn above so the logos appear on this member&apos;s 3D card.
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -846,6 +1167,86 @@ export default function Panel() {
                       className="w-full bg-background border border-border rounded-lg px-3 py-2.5 text-white text-sm font-mono focus:outline-none focus:border-cyan"
                       placeholder="https://..."
                     />
+                  </div>
+                </div>
+
+                {/* 3D ID Card Overrides */}
+                <div className="pt-4 border-t border-border">
+                  <h3 className="font-mono text-xs text-white uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <CreditCard size={14} className="text-cyan" />
+                    3D ID Card Overrides
+                  </h3>
+                  <div className="space-y-4">
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">
+                          Member Badge ID
+                        </label>
+                        <span className="font-mono text-[10px] text-cyan">
+                          Auto-generated
+                        </span>
+                      </div>
+                      <div className="w-full bg-background/50 border border-border rounded-lg px-3 py-2.5 text-cyan font-mono text-sm flex items-center justify-between">
+                        <span className="font-bold tracking-wider">
+                          {`GZ-${String(Math.max(1, form.sort_order || 1)).padStart(3, '0')}`}
+                        </span>
+                        <span className="text-[11px] text-muted-foreground">
+                          Derived from sort order #{form.sort_order || 1}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block font-mono text-[10px] text-muted-foreground uppercase tracking-widest mb-1.5">
+                          Card Finish Override
+                        </label>
+                        <select
+                          value={form.card_overrides_finish}
+                          onChange={(e) => setForm({ ...form, card_overrides_finish: e.target.value })}
+                          className="w-full bg-background border border-border rounded-lg px-3 py-2.5 text-white text-sm font-mono focus:outline-none focus:border-cyan"
+                        >
+                          <option value="">Global Default</option>
+                          <option value="glossy">Glossy</option>
+                          <option value="matte">Matte</option>
+                          <option value="holographic">Holographic</option>
+                          <option value="metallic">Metallic</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block font-mono text-[10px] text-muted-foreground uppercase tracking-widest mb-1.5">
+                          Orientation Override
+                        </label>
+                        <select
+                          value={form.card_overrides_orientation}
+                          onChange={(e) => setForm({ ...form, card_overrides_orientation: e.target.value })}
+                          className="w-full bg-background border border-border rounded-lg px-3 py-2.5 text-white text-sm font-mono focus:outline-none focus:border-cyan"
+                        >
+                          <option value="">Global Default</option>
+                          <option value="portrait">Portrait</option>
+                          <option value="landscape">Landscape</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block font-mono text-[10px] text-muted-foreground uppercase tracking-widest mb-1.5">
+                        Custom Strap Color (hex)
+                      </label>
+                      <div className="flex gap-2 items-center">
+                        <input
+                          type="color"
+                          value={form.card_overrides_strapColor || '#00f0ff'}
+                          onChange={(e) => setForm({ ...form, card_overrides_strapColor: e.target.value })}
+                          className="w-10 h-10 rounded border border-border bg-background cursor-pointer p-0.5"
+                        />
+                        <input
+                          type="text"
+                          value={form.card_overrides_strapColor}
+                          onChange={(e) => setForm({ ...form, card_overrides_strapColor: e.target.value })}
+                          className="flex-1 bg-background border border-border rounded-lg px-3 py-2.5 text-white text-sm font-mono focus:outline-none focus:border-cyan"
+                          placeholder="#00f0ff (leave empty for global default)"
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>

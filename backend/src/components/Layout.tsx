@@ -18,6 +18,7 @@ import {
   Type,
   LayoutTemplate,
   PanelBottom,
+  CreditCard,
 } from 'lucide-react'
 
 const NAV_ITEMS = [
@@ -27,6 +28,7 @@ const NAV_ITEMS = [
   { to: '/gallery/albums', label: 'Albums', icon: FolderOpen, end: false },
   { to: '/panel', label: 'Panel', icon: Users, end: false },
   { to: '/panel/popup-design', label: 'Panel Popup', icon: Layers, end: false },
+  { to: '/panel/3d-cards', label: '3D ID Cards', icon: CreditCard, end: false },
   { to: '/feedback', label: 'Feedback', icon: MessageSquare, end: false },
   { to: '/about/layout', label: 'About Layout', icon: LayoutTemplate, end: false },
   { to: '/footer', label: 'Footer', icon: PanelBottom, end: false },

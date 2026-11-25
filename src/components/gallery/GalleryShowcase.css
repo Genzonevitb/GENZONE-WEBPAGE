@@ -1,0 +1,209 @@
+.gallery-showcase {
+  --gs-ink: #f5f3ef;
+  --gs-muted: rgb(245 243 239 / 58%);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: var(--gallery-showcase-height, 560px);
+  min-height: 360px;
+  overflow: hidden;
+  color: var(--gs-ink);
+  background: #11110f;
+  border-radius: 18px;
+  border: 1px solid rgb(255 255 255 / 10%);
+  isolation: isolate;
+}
+
+.gallery-showcase__toolbar {
+  position: absolute;
+  z-index: 3;
+  inset: 0 0 auto;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  min-height: 74px;
+  padding: 18px 22px 0;
+  pointer-events: none;
+}
+
+.gallery-showcase__heading {
+  text-align: center;
+}
+
+.gallery-showcase__heading h3 {
+  margin: 0;
+  color: inherit;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: 0.015em;
+}
+
+.gallery-showcase__heading p {
+  margin: 4px 0 0;
+  color: var(--gs-muted);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.4;
+}
+
+.gallery-showcase__stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+}
+
+.gallery-showcase__albums,
+.gallery-showcase__carousel {
+  width: 100%;
+  height: 100%;
+  color: inherit;
+}
+
+.gallery-showcase__albums .circular-gallery-label {
+  text-shadow: 0 1px 14px rgb(0 0 0 / 55%);
+}
+
+/* Fullscreen FlexCarousel Modal */
+.gallery-showcase-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  width: 100vw;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  color: #f5f3ef;
+  isolation: isolate;
+}
+
+.gallery-showcase-modal__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background: rgb(8 8 10 / 90%);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.gallery-showcase-modal__toolbar {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 22px 10px;
+  pointer-events: none;
+}
+
+.gallery-showcase-modal__back,
+.gallery-showcase-modal__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 40px;
+  border: 1px solid rgb(255 255 255 / 20%);
+  border-radius: 999px;
+  color: inherit;
+  background: rgb(14 14 16 / 70%);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+  cursor: pointer;
+  pointer-events: auto;
+  backdrop-filter: blur(12px);
+  transition: background 160ms ease, border-color 160ms ease, transform 160ms ease;
+}
+
+.gallery-showcase-modal__back {
+  padding: 0 14px;
+}
+
+.gallery-showcase-modal__close {
+  width: 42px;
+  height: 42px;
+  padding: 0;
+}
+
+.gallery-showcase-modal__back:hover,
+.gallery-showcase-modal__close:hover {
+  border-color: rgb(255 255 255 / 42%);
+  background: rgb(255 255 255 / 14%);
+}
+
+.gallery-showcase-modal__back:focus-visible,
+.gallery-showcase-modal__close:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+}
+
+.gallery-showcase-modal__heading {
+  text-align: center;
+  pointer-events: none;
+}
+
+.gallery-showcase-modal__heading h2 {
+  margin: 0;
+  color: inherit;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: 0.02em;
+}
+
+.gallery-showcase-modal__heading p {
+  margin: 4px 0 0;
+  color: rgb(245 243 239 / 60%);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.4;
+}
+
+.gallery-showcase-modal__stage {
+  position: relative;
+  z-index: 5;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+}
+
+@media (max-width: 600px) {
+  .gallery-showcase {
+    min-height: 340px;
+    border-radius: 12px;
+  }
+
+  .gallery-showcase__toolbar {
+    padding-top: 15px;
+  }
+
+  .gallery-showcase-modal__toolbar {
+    padding: 14px 14px 6px;
+  }
+
+  .gallery-showcase-modal__back {
+    min-height: 36px;
+    padding-inline: 11px;
+  }
+
+  .gallery-showcase-modal__close {
+    width: 38px;
+    height: 38px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gallery-showcase-modal__back,
+  .gallery-showcase-modal__close {
+    transition: none;
+  }
+}

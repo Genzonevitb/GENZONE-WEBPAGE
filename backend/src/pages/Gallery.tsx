@@ -145,8 +145,16 @@ export default function Gallery() {
 
     setUploads((prev) => [...prev, ...tasks])
 
+    const validOrders = items
+      .map((i) => i.sort_order)
+      .filter((n): n is number => typeof n === 'number' && Number.isFinite(n))
+    const baseOrder = validOrders.length > 0 ? Math.max(...validOrders) + 1 : items.length
+
+    let fileOffset = 0
     for (const task of tasks) {
       if (task.error) continue
+      const sortOrder = baseOrder + fileOffset
+      fileOffset++
       setUploads((prev) =>
         prev.map((t) => (t.id === task.id ? { ...t, status: 'uploading', progress: 20 } : t))
       )
@@ -169,7 +177,7 @@ export default function Gallery() {
           thumb_path: thumb.path,
           caption: null,
           category: null,
-          sort_order: null,
+          sort_order: sortOrder,
           tall: false,
         })
         if (error) throw error

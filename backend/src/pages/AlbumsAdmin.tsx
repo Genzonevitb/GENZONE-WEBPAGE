@@ -20,6 +20,7 @@ interface Photo {
   image_url: string
   thumb_url: string | null
   tall: boolean
+  sort_order?: number | null
 }
 
 export default function AlbumsAdmin() {
@@ -54,7 +55,7 @@ export default function AlbumsAdmin() {
     setLoading(true)
     const [albumsRes, photosRes] = await Promise.all([
       supabase.from('gallery_albums').select('id, name, heading, sort_order').order('sort_order'),
-      supabase.from('gallery').select('id, caption, category, album_id, image_url, thumb_url, tall').order('sort_order', { ascending: true }),
+      supabase.from('gallery').select('id, caption, category, album_id, image_url, thumb_url, tall, sort_order').order('sort_order', { ascending: true }),
     ])
     if (albumsRes.data) setAlbums(albumsRes.data as Album[])
     if (photosRes.data) setPhotos(photosRes.data as Photo[])
@@ -130,11 +131,17 @@ export default function AlbumsAdmin() {
     if (!photoFile) { toast.error('Please select a photo first.'); return }
     setUploadingPhoto(true)
     try {
-      const { url } = await uploadImage(photoFile, 'gallery', 1920, 1)
-      const nextOrder = photos.length > 0 ? Math.max(...photos.map((p) => p.id ? 0 : 0)) + photos.length : 0
+      const full = await uploadImage(photoFile, 'gallery', 1920, 1)
+      const thumb = await uploadImage(photoFile, 'gallery', 400, 0.1)
+      const validOrders = photos
+        .map((p) => p.sort_order)
+        .filter((n): n is number => typeof n === 'number' && Number.isFinite(n))
+      const nextOrder = validOrders.length > 0 ? Math.max(...validOrders) + 1 : photos.length
       const { error } = await supabase.from('gallery').insert([{
-        image_url: url,
-        thumb_url: null,
+        image_url: full.url,
+        image_path: full.path,
+        thumb_url: thumb.url,
+        thumb_path: thumb.path,
         caption: photoCaption.trim() || null,
         category: photoCategory.trim() || null,
         album_id: activeAlbumId || null,

@@ -19,6 +19,7 @@ import GlobalControls from './pages/GlobalControls'
 import TextTypography from './pages/TextTypography'
 import AboutLayoutEditor from './pages/AboutLayoutEditor'
 import PanelPopupDesign from './pages/PanelPopupDesign'
+import PanelCard3DAdmin from './pages/PanelCard3DAdmin'
 import FooterAdmin from './pages/FooterAdmin'
 
 export default function App() {
@@ -38,6 +39,7 @@ export default function App() {
               <Route path="gallery/albums" element={<AlbumsAdmin />} />
               <Route path="panel" element={<Panel />} />
               <Route path="panel/popup-design" element={<PanelPopupDesign />} />
+              <Route path="panel/3d-cards" element={<PanelCard3DAdmin />} />
               <Route path="feedback" element={<Feedback />} />
               <Route path="intro" element={<IntroAdmin />} />
               <Route path="global-controls" element={<GlobalControls />} />

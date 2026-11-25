@@ -1,5 +1,8 @@
 import { AnimatePresence, motion, useReducedMotion, useScroll, useTransform } from "motion/react";
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback, lazy, Suspense } from "react";
+import { DEFAULT_CARD_CONFIG } from "@/components/panel3d/cardDefaults";
+import type { CardConfig } from "@/components/panel3d/cardDefaults";
+import { GalleryShowcase, type GalleryAlbum, type GalleryPhoto } from "@/components/gallery/GalleryShowcase";
 import { supabase } from "@/lib/supabase";
 import { accentBg, accentBorder, accentText, Reveal, SectionTag, SplitHeading } from "./shared";
 import { useSiteConfig } from "@/lib/config-context";
@@ -134,6 +137,11 @@ interface DbMember {
   social_portfolio?: string | null;
   social_custom_url?: string | null;
   social_custom_label?: string | null;
+  instagram_url?: string | null;
+  linkedin_url?: string | null;
+  github_url?: string | null;
+  x_url?: string | null;
+  portfolio_url?: string | null;
   focal_point?: string | null;
   accent_color_hex?: string | null;
   hidden?: boolean;
@@ -1208,8 +1216,6 @@ export function Events() {
 export function Gallery() {
   const [photos, setPhotos] = useState<DbGallery[]>([]);
   const [albums, setAlbums] = useState<DbAlbum[]>([]);
-  const [filter, setFilter] = useState<string>("all");
-  const [preview, setPreview] = useState<string | null>(null);
   const settings = useSettings(["gallery_label", "gallery_heading"]);
 
   useEffect(() => {
@@ -1233,85 +1239,69 @@ export function Gallery() {
   const label = settings["gallery_label"] || "GenZone Memories";
   const heading = settings["gallery_heading"] || "Proof it happened.";
 
-  const shown = filter === "all" ? photos : photos.filter((p) => p.album_id === filter);
-  const active = photos.find((m) => m.id === preview);
+  const mappedAlbums = useMemo<GalleryAlbum[]>(() => {
+    const mapPhoto = (p: DbGallery, fallbackTitle: string, fallbackSubtitle?: string | null): GalleryPhoto => {
+      const sub = p.category || fallbackSubtitle || undefined;
+      return {
+        id: p.id,
+        src: p.image_url,
+        alt: p.caption || p.category || fallbackTitle,
+        title: p.caption || fallbackTitle,
+        ...(sub ? { subtitle: sub } : {}),
+      };
+    };
 
-  const filterButtons = [
-    { id: "all", name: "All" },
-    ...albums,
-  ];
+    const fromAlbums = albums
+      .map((alb) => {
+        const albumRows = photos.filter((p) => p.album_id === alb.id);
+        const explicitCover = (alb as DbAlbum & { cover_image?: string | null; cover_url?: string | null }).cover_image
+          ?? (alb as DbAlbum & { cover_url?: string | null }).cover_url;
+        const firstRow = albumRows[0];
+        const coverImage = explicitCover || firstRow?.thumb_url || firstRow?.image_url || "";
+        if (!coverImage && albumRows.length === 0) return null;
+        return {
+          id: alb.id,
+          title: alb.name,
+          coverImage,
+          photos: albumRows.map((p) => mapPhoto(p, alb.name, alb.heading)),
+        } as GalleryAlbum;
+      })
+      .filter((a): a is GalleryAlbum => a !== null);
+
+    if (fromAlbums.length > 0) return fromAlbums;
+
+    const fallbackRows = photos.filter((p) => Boolean(p.image_url || p.thumb_url));
+    const firstFallback = fallbackRows[0];
+    if (firstFallback) {
+      return [
+        {
+          id: "highlights",
+          title: "Highlights",
+          coverImage: firstFallback.thumb_url || firstFallback.image_url,
+          photos: fallbackRows.map((p) => mapPhoto(p, "Highlights")),
+        },
+      ];
+    }
+
+    return [];
+  }, [albums, photos]);
 
   return (
     <section id="gallery" className="bg-charcoal px-5 py-28 md:px-16 md:py-40">
       <SectionTag n="03" label={label} />
       <div className="mb-12 flex flex-col justify-between gap-8 md:flex-row md:items-end">
         <SplitHeading text={heading} className="font-display text-5xl font-black uppercase md:text-8xl" />
-        <div className="flex flex-wrap gap-2">
-          {filterButtons.map((b) => (
-            <button
-              key={b.id}
-              onClick={() => setFilter(b.id)}
-              className={`rounded-full border px-4 py-2 font-mono text-xs uppercase tracking-widest transition-colors ${filter === b.id ? "border-pink bg-pink text-foreground" : "hover:border-cyan hover:text-cyan"}`}
-            >
-              {b.name}
-            </button>
-          ))}
-        </div>
       </div>
 
-      {photos.length === 0 ? (
-        <p className="text-muted-foreground font-mono text-sm">No photos yet — upload some from the admin panel.</p>
+      {mappedAlbums.length === 0 ? (
+        <p className="text-muted-foreground font-mono text-sm">
+          {photos.length === 0
+            ? "No photos yet — upload some from the admin panel."
+            : "No albums yet — create an album from the admin panel."}
+        </p>
       ) : (
-        <motion.div layout className="columns-2 gap-3 md:columns-4 md:gap-4">
-          <AnimatePresence>
-            {shown.map((m) => (
-              <motion.button
-                layout
-                key={m.id}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                onClick={() => setPreview(m.id)}
-                className={`group relative mb-3 block w-full overflow-hidden rounded-lg border md:mb-4 ${m.tall ? "aspect-[3/4]" : "aspect-square"}`}
-              >
-                <img
-                  src={m.thumb_url ?? m.image_url}
-                  alt={m.caption ?? ""}
-                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                />
-                <span className="absolute inset-0 bg-neon opacity-0 mix-blend-overlay transition-opacity group-hover:opacity-40" />
-                <span className="absolute bottom-3 left-3 text-left font-mono text-[10px] uppercase tracking-widest">
-                  <span className="block text-cyan">{m.category}</span>
-                  {m.caption}
-                </span>
-              </motion.button>
-            ))}
-          </AnimatePresence>
-        </motion.div>
+        <GalleryShowcase albums={mappedAlbums} height="clamp(440px, 68vh, 620px)" />
       )}
-
-      <AnimatePresence>
-        {active && (
-          <motion.div
-            className="fixed inset-0 z-[80] flex items-center justify-center bg-background/90 p-6 backdrop-blur"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setPreview(null)}
-            role="dialog"
-            aria-label="Photo preview"
-          >
-            <motion.div initial={{ scale: 0.85 }} animate={{ scale: 1 }} className="relative flex aspect-[4/3] w-full max-w-3xl overflow-hidden rounded-xl border-2 border-cyan">
-              <img src={active.image_url} alt={active.caption ?? ""} className="h-full w-full object-cover" />
-              <div className="absolute bottom-0 inset-x-0 bg-background/80 p-6 backdrop-blur-sm">
-                <p className="font-mono text-xs uppercase tracking-widest text-cyan">{active.category}</p>
-                <p className="font-display text-2xl font-black uppercase">{active.caption}</p>
-                <p className="mt-1 text-sm text-muted-foreground">Tap anywhere to close</p>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </section>
   );
 }
@@ -1679,12 +1669,18 @@ function PanelMemberPopup({
 }
 
 // ─── Panel ───────────────────────────────────────────────────
+// Lazy-loaded 3D ID Card modal popup
+const LazyPanelCardPopup = lazy(() => import("@/components/panel3d/PanelCardPopup"));
+
 export function Panel() {
   const [members, setMembers] = useState<DbMember[]>([]);
   const [popupMember, setPopupMember] = useState<DbMember | null>(null);
-  const [popupIndex, setPopupIndex] = useState(0);
+  const [card3dCfg, setCard3dCfg] = useState<CardConfig>(DEFAULT_CARD_CONFIG);
+  const sectionRef = useRef<HTMLElement>(null);
   const settings = useSettings(["panel_label", "panel_heading"]);
+  const config = useSiteConfig();
 
+  // Load members
   useEffect(() => {
     supabase
       .from("panel_members")
@@ -1698,14 +1694,33 @@ export function Panel() {
       });
   }, []);
 
+  // Read panel.card3d config from site_config
+  useEffect(() => {
+    const raw = (config as Record<string, unknown>)["panel.card3d"];
+    if (raw && typeof raw === "object") {
+      setCard3dCfg({ ...DEFAULT_CARD_CONFIG, ...(raw as Partial<CardConfig>) });
+    }
+  }, [config]);
+
   const label = settings["panel_label"] || "Meet the Panel";
   const heading = settings["panel_heading"] || "The people behind the noise.";
 
   return (
     <>
-      <section id="panel" className="px-5 py-28 md:px-16 md:py-40">
+      <section id="panel" ref={sectionRef} className="px-5 py-28 md:px-16 md:py-40">
         <SectionTag n="04" label={label} />
         <SplitHeading text={heading} className="mb-16 max-w-5xl font-display text-5xl font-black uppercase leading-[0.95] md:text-8xl" />
+
+        {/* Visually hidden member list for SEO / accessibility */}
+        <ul className="sr-only" aria-label="Panel members">
+          {members.map((m) => (
+            <li key={m.id}>
+              {m.name} — {m.role}
+            </li>
+          ))}
+        </ul>
+
+        {/* ── 2D Staggered Photo Grid ── */}
         <div className="grid grid-cols-2 gap-x-4 gap-y-12 md:grid-cols-3 md:gap-x-8">
           {members.map((p, i) => (
             <Reveal key={p.id} delay={(i % 3) * 0.1} className={i % 3 === 1 ? "md:mt-24" : ""}>
@@ -1714,13 +1729,11 @@ export function Panel() {
                 tabIndex={0}
                 onClick={() => {
                   setPopupMember(p);
-                  setPopupIndex(i);
                 }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
                     setPopupMember(p);
-                    setPopupIndex(i);
                   }
                 }}
                 className="group cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan rounded-xl"
@@ -1751,19 +1764,16 @@ export function Panel() {
         </div>
       </section>
 
-      {/* Member Details Popup */}
+      {/* 3D ID Card Modal Popup */}
       <AnimatePresence>
         {popupMember && (
-          <PanelMemberPopup
-            member={popupMember}
-            members={members}
-            currentIndex={popupIndex}
-            onClose={() => setPopupMember(null)}
-            onSelectMember={(m, idx) => {
-              setPopupMember(m);
-              setPopupIndex(idx);
-            }}
-          />
+          <Suspense fallback={null}>
+            <LazyPanelCardPopup
+              member={popupMember as unknown as import("@/components/panel3d/PanelCardPopup").PopupMember}
+              cfg={card3dCfg}
+              onClose={() => setPopupMember(null)}
+            />
+          </Suspense>
         )}
       </AnimatePresence>
     </>
