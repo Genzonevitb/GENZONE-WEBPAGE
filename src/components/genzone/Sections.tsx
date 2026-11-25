@@ -298,9 +298,19 @@ export function About() {
   const story = settings["about_story"] || "[Placeholder: your club's story, mission and founding year go here.]";
   const watermark = settings["about_watermark"] || "LOUDER BOLDER";
 
-  const displayStats: Array<[string, string, string]> = stats.length > 0
-    ? stats.map((s) => [s.value, s.label, `text-${s.accent}`])
-    : [["00+", "Members", "text-cyan"], ["00+", "Events", "text-pink"], ["00", "Domains", "text-yellow"]];
+  const dedupedStats: DbStat[] = [];
+  const seenLabels = new Set<string>();
+  for (const s of stats) {
+    const key = s.label.trim().toLowerCase();
+    if (!seenLabels.has(key)) {
+      seenLabels.add(key);
+      dedupedStats.push(s);
+    }
+  }
+
+  const displayStats: Array<[string, string, string, string]> = dedupedStats.length > 0
+    ? dedupedStats.map((s) => [s.id, s.value, s.label, `text-${s.accent}`])
+    : [["default-members", "00+", "Members", "text-cyan"], ["default-events", "00+", "Events", "text-pink"], ["default-domains", "00", "Domains", "text-yellow"]];
 
   // Check if custom elements layout is active
   const hasDesktopLayout =
@@ -409,11 +419,11 @@ export function About() {
             width: `${el.w}%`,
           }}
         >
-          <Reveal delay={0.2} className="grid grid-cols-3 gap-4 border-t pt-4">
-            {displayStats.map(([n, l, c]) => (
-              <div key={l}>
-                <div className={`font-display text-3xl font-black md:text-4xl ${c}`}>{n}</div>
-                <div className="font-mono text-xs uppercase tracking-widest">{l}</div>
+          <Reveal delay={0.2} className="grid grid-cols-3 gap-3 border-t pt-4 sm:gap-4">
+            {displayStats.map(([id, n, l, c]) => (
+              <div key={id} className="min-w-0">
+                <div className={`font-display text-2xl font-black sm:text-3xl md:text-4xl ${c}`}>{n}</div>
+                <div className="truncate font-mono text-[10px] uppercase tracking-widest sm:text-xs">{l}</div>
               </div>
             ))}
           </Reveal>
@@ -447,25 +457,25 @@ export function About() {
         </section>
       ) : (
         /* Full fallback to existing layout */
-        <section id="about" ref={ref} className="relative overflow-hidden px-5 py-28 md:px-16 md:py-40">
+        <section id="about" ref={ref} className="relative overflow-x-clip px-5 py-16 scroll-mt-16 sm:py-24 md:px-16 md:py-40">
           <SectionTag n="01" label={label} />
-          <motion.p style={{ x }} className="pointer-events-none whitespace-nowrap font-display text-[22vw] font-black leading-none text-foreground/5" aria-hidden>
+          <motion.p style={{ x }} className="pointer-events-none whitespace-nowrap font-display text-[15vw] font-black leading-none text-foreground/5 md:text-[22vw]" aria-hidden>
             {watermark}
           </motion.p>
-          <div className="-mt-[10vw] grid gap-12 md:grid-cols-2">
-            <SplitHeading text={heading} className="font-display text-4xl font-black uppercase leading-[0.95] md:text-7xl" />
-            <div className="space-y-6 self-end text-lg text-muted-foreground md:text-xl">
+          <div className="-mt-1 grid gap-8 sm:-mt-3 sm:gap-10 md:-mt-[10vw] md:grid-cols-2 md:gap-12">
+            <SplitHeading text={heading} className="font-display text-3xl sm:text-4xl font-black uppercase leading-[0.95] md:text-7xl break-words" />
+            <div className="min-w-0 space-y-5 self-end text-base text-muted-foreground sm:space-y-6 sm:text-lg md:text-xl">
               <Reveal>
                 <p>{paragraph}</p>
               </Reveal>
               <Reveal delay={0.1}>
                 <p className="text-foreground">{story}</p>
               </Reveal>
-              <Reveal delay={0.2} className="grid grid-cols-3 gap-4 pt-6">
-                {displayStats.map(([n, l, c]) => (
-                  <div key={l} className="border-t pt-4">
-                    <div className={`font-display text-3xl font-black md:text-4xl ${c}`}>{n}</div>
-                    <div className="font-mono text-xs uppercase tracking-widest">{l}</div>
+              <Reveal delay={0.2} className="grid grid-cols-3 gap-3 pt-4 sm:gap-4 sm:pt-6">
+                {displayStats.map(([id, n, l, c]) => (
+                  <div key={id} className="min-w-0 border-t pt-3 sm:pt-4">
+                    <div className={`font-display text-2xl font-black sm:text-3xl md:text-4xl ${c}`}>{n}</div>
+                    <div className="truncate font-mono text-[10px] uppercase tracking-widest sm:text-xs">{l}</div>
                   </div>
                 ))}
               </Reveal>
@@ -1099,18 +1109,18 @@ export function Events() {
   }
 
   if (events.length === 0) return (
-    <section id="events" className="px-5 py-28 md:px-16 md:py-40">
+    <section id="events" className="overflow-x-clip px-5 py-16 scroll-mt-16 sm:py-24 md:px-16 md:py-40">
       <SectionTag n="02" label={label} />
-      <SplitHeading text={heading} className="mb-16 font-display text-5xl font-black uppercase md:text-8xl" />
+      <SplitHeading text={heading} className="mb-10 font-display text-3xl sm:text-5xl font-black uppercase md:mb-16 md:text-8xl break-words" />
       <p className="text-muted-foreground font-mono text-sm">No events yet — check back soon.</p>
     </section>
   );
 
   return (
     <>
-      <section id="events" className="px-5 py-28 md:px-16 md:py-40">
+      <section id="events" className="overflow-x-clip px-5 py-16 scroll-mt-16 sm:py-24 md:px-16 md:py-40">
         <SectionTag n="02" label={label} />
-        <SplitHeading text={heading} className="mb-16 font-display text-5xl font-black uppercase md:text-8xl" />
+        <SplitHeading text={heading} className="mb-10 font-display text-3xl sm:text-5xl font-black uppercase md:mb-16 md:text-8xl break-words" />
         <div className="grid gap-10 md:grid-cols-[1fr_0.8fr] md:pr-20">
           <ul>
             {events.map((e, i) => (
@@ -1287,7 +1297,7 @@ export function Gallery() {
   }, [albums, photos]);
 
   return (
-    <section id="gallery" className="bg-charcoal overflow-x-clip px-5 py-16 sm:py-24 md:px-16 md:py-40">
+    <section id="gallery" className="bg-charcoal overflow-x-clip px-5 py-16 scroll-mt-16 sm:py-24 md:px-16 md:py-40">
       <SectionTag n="03" label={label} />
       <div className="mb-8 flex flex-col justify-between gap-6 md:mb-12 md:flex-row md:items-end md:gap-8">
         <SplitHeading text={heading} className="font-display text-3xl sm:text-5xl font-black uppercase md:text-8xl break-words" />
@@ -1707,9 +1717,9 @@ export function Panel() {
 
   return (
     <>
-      <section id="panel" ref={sectionRef} className="px-5 py-28 md:px-16 md:py-40">
+      <section id="panel" ref={sectionRef} className="overflow-x-clip px-5 py-16 scroll-mt-16 sm:py-24 md:px-16 md:py-40">
         <SectionTag n="04" label={label} />
-        <SplitHeading text={heading} className="mb-16 max-w-5xl font-display text-5xl font-black uppercase leading-[0.95] md:text-8xl" />
+        <SplitHeading text={heading} className="mb-10 max-w-5xl font-display text-3xl sm:text-5xl font-black uppercase leading-[0.95] md:mb-16 md:text-8xl break-words" />
 
         {/* Visually hidden member list for SEO / accessibility */}
         <ul className="sr-only" aria-label="Panel members">
@@ -1721,7 +1731,7 @@ export function Panel() {
         </ul>
 
         {/* ── 2D Staggered Photo Grid ── */}
-        <div className="grid grid-cols-2 gap-x-4 gap-y-12 md:grid-cols-3 md:gap-x-8">
+        <div className="grid grid-cols-2 gap-x-3.5 gap-y-8 sm:gap-x-4 sm:gap-y-12 md:grid-cols-3 md:gap-x-8">
           {members.map((p, i) => (
             <Reveal key={p.id} delay={(i % 3) * 0.1} className={i % 3 === 1 ? "md:mt-24" : ""}>
               <figure
@@ -1754,9 +1764,9 @@ export function Panel() {
                   <div className={`absolute inset-x-0 bottom-0 h-1/2 translate-y-full opacity-50 blur-2xl transition-transform duration-700 group-hover:translate-y-0 ${accentBg[p.accent]}`} />
                   <span className="absolute bottom-2 right-4 font-display text-7xl font-black text-foreground/10">0{i + 1}</span>
                 </div>
-                <figcaption className="mt-4">
-                  <p className={`font-mono text-xs uppercase tracking-widest ${accentText[p.accent]}`}>{p.role}</p>
-                  <p className="font-display text-xl font-black uppercase md:text-2xl group-hover:text-cyan transition-colors">{p.name}</p>
+                <figcaption className="mt-3 sm:mt-4 min-w-0">
+                  <p className={`truncate font-mono text-[10px] uppercase tracking-widest sm:text-xs ${accentText[p.accent]}`}>{p.role}</p>
+                  <p className="font-display text-base font-black uppercase leading-tight sm:text-xl md:text-2xl group-hover:text-cyan transition-colors">{p.name}</p>
                 </figcaption>
               </figure>
             </Reveal>
