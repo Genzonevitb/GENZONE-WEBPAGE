@@ -26,7 +26,7 @@ const SECTION_DEFAULTS: Record<string, string> = {
   events_label:      'Events & Activities',
   events_heading:    "What's going down.",
   gallery_label:     'GenZone Memories',
-  gallery_heading:   'Proof it happened.',
+  gallery_heading:   'Wall of Memories',
   panel_label:       'Meet the Panel',
   panel_heading:     'The people behind the noise.',
   feedback_label:    'Suggestions & Feedback',

@@ -9,9 +9,9 @@
   min-height: 360px;
   overflow: hidden;
   color: var(--gs-ink);
-  background: #11110f;
+  background: radial-gradient(circle at 50% 50%, rgb(10 10 12 / 12%), rgb(10 10 12 / 34%));
   border-radius: 18px;
-  border: 1px solid rgb(255 255 255 / 10%);
+  border: 1px solid rgb(255 255 255 / 14%);
   isolation: isolate;
 }
 
@@ -29,6 +29,7 @@
 
 .gallery-showcase__heading {
   text-align: center;
+  text-shadow: 0 2px 14px rgb(0 0 0 / 85%);
 }
 
 .gallery-showcase__heading h3 {

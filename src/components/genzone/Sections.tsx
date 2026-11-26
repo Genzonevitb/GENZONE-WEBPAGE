@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState, useCallback, lazy, Suspense } fro
 import { DEFAULT_CARD_CONFIG } from "@/components/panel3d/cardDefaults";
 import type { CardConfig } from "@/components/panel3d/cardDefaults";
 import { GalleryShowcase, type GalleryAlbum, type GalleryPhoto } from "@/components/gallery/GalleryShowcase";
+import GridMotion from "@/components/gallery/GridMotion";
 import { supabase } from "@/lib/supabase";
 import { accentBg, accentBorder, accentText, Reveal, SectionTag, SplitHeading } from "./shared";
 import { useSiteConfig } from "@/lib/config-context";
@@ -1247,7 +1248,16 @@ export function Gallery() {
   }, []);
 
   const label = settings["gallery_label"] || "GenZone Memories";
-  const heading = settings["gallery_heading"] || "Proof it happened.";
+  const rawHeading = settings["gallery_heading"];
+  const heading = rawHeading && rawHeading !== "Proof it happened." ? rawHeading : "Wall of Memories";
+
+  const backgroundItems = useMemo(
+    () =>
+      photos
+        .map((p) => p.thumb_url || p.image_url)
+        .filter((src): src is string => Boolean(src)),
+    [photos],
+  );
 
   const mappedAlbums = useMemo<GalleryAlbum[]>(() => {
     const mapPhoto = (p: DbGallery, fallbackTitle: string, fallbackSubtitle?: string | null): GalleryPhoto => {
@@ -1297,21 +1307,45 @@ export function Gallery() {
   }, [albums, photos]);
 
   return (
-    <section id="gallery" className="bg-charcoal overflow-x-clip px-5 py-16 scroll-mt-16 sm:py-24 md:px-16 md:py-40">
-      <SectionTag n="03" label={label} />
-      <div className="mb-8 flex flex-col justify-between gap-6 md:mb-12 md:flex-row md:items-end md:gap-8">
-        <SplitHeading text={heading} className="font-display text-3xl sm:text-5xl font-black uppercase md:text-8xl break-words" />
-      </div>
-
-      {mappedAlbums.length === 0 ? (
-        <p className="text-muted-foreground font-mono text-sm">
-          {photos.length === 0
-            ? "No photos yet — upload some from the admin panel."
-            : "No albums yet — create an album from the admin panel."}
-        </p>
-      ) : (
-        <GalleryShowcase albums={mappedAlbums} height="clamp(360px, 58dvh, 620px)" />
+    <section id="gallery" className="relative bg-charcoal overflow-hidden px-5 py-16 scroll-mt-16 sm:py-24 md:px-16 md:py-40">
+      {backgroundItems.length > 0 && (
+        <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden" aria-hidden="true">
+          <GridMotion
+            items={backgroundItems}
+            rows={4}
+            aspectRatio={1.33}
+            gap={14}
+            radius={14}
+            angle={-12}
+            speed={20}
+            direction="alternate"
+            parallax={0.45}
+            spotlight={0.65}
+            dim={0.28}
+            fade={0.35}
+            theme="dark"
+            className="h-full w-full opacity-75"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-charcoal/75 via-charcoal/25 to-charcoal/75" />
+        </div>
       )}
+
+      <div className="relative z-10">
+        <SectionTag n="03" label={label} />
+        <div className="mb-8 flex flex-col justify-between gap-6 md:mb-12 md:flex-row md:items-end md:gap-8">
+          <SplitHeading text={heading} className="font-display text-3xl sm:text-5xl font-black uppercase md:text-8xl break-words drop-shadow-[0_4px_24px_rgba(0,0,0,0.85)]" />
+        </div>
+
+        {mappedAlbums.length === 0 ? (
+          <p className="text-muted-foreground font-mono text-sm">
+            {photos.length === 0
+              ? "No photos yet — upload some from the admin panel."
+              : "No albums yet — create an album from the admin panel."}
+          </p>
+        ) : (
+          <GalleryShowcase albums={mappedAlbums} height="clamp(360px, 58dvh, 620px)" />
+        )}
+      </div>
     </section>
   );
 }

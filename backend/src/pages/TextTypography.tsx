@@ -113,7 +113,7 @@ const TEXT_ENTRIES: TextEntry[] = [
     group: 'GALLERY',
     key: 'text.gallery.section_heading',
     shortKey: 'gallery.section_heading',
-    defaultText: 'Proof it happened.',
+    defaultText: 'Wall of Memories',
   },
   {
     group: 'GALLERY',
