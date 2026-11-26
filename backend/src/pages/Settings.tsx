@@ -9,18 +9,19 @@ type Setting = { key: string; value: string }
 
 const KNOWN_LABELS: Record<string, string> = {
   // Brand
-  club_name:      'Club Name',
-  footer_tagline: 'Footer Tagline',
-  // Contact
-  contact_email:  'Contact Email',
-  location:       'Campus Location',
-  tagline:        'Club Tagline (meta)',
-  // Socials
-  instagram: 'Instagram URL',
-  linkedin:  'LinkedIn URL',
-  youtube:   'YouTube URL',
-  twitter:   'X (Twitter) URL',
+  club_name: 'Club Name',
+  tagline:   'Club Tagline (meta)',
 }
+
+const MOVED_TO_FOOTER_KEYS = [
+  'footer_tagline',
+  'contact_email',
+  'location',
+  'instagram',
+  'linkedin',
+  'youtube',
+  'twitter',
+]
 
 function SkeletonRow() {
   return (
@@ -125,8 +126,8 @@ export default function Settings() {
     }
   }
 
-  // Hidden keys managed via dedicated UI (logo_url, favicon_url) — don't show in text fields
-  const hiddenKeys = ['logo_url', 'favicon_url']
+  // Hidden keys managed via dedicated UI (logo_url, favicon_url, and Footer fields)
+  const hiddenKeys = ['logo_url', 'favicon_url', ...MOVED_TO_FOOTER_KEYS]
   const knownKeys = Object.keys(KNOWN_LABELS)
   const knownSettings = knownKeys.map((k) => settings.find((s) => s.key === k) ?? { key: k, value: '' })
   const customSettings = settings.filter((s) => !knownKeys.includes(s.key) && !hiddenKeys.includes(s.key))
@@ -140,7 +141,7 @@ export default function Settings() {
         <p className="font-mono text-xs text-cyan tracking-[0.3em] uppercase mb-2">05 — Settings</p>
         <h1 className="font-display text-3xl font-black uppercase">Site Settings</h1>
         <p className="text-muted-foreground text-sm mt-2">
-          Edit branding, contact info, social links, and other site-wide values.
+          Edit club branding, logo, and custom site-wide values. Contact details, footer tagline, and social links are now managed in Footer.
         </p>
       </div>
 
@@ -194,7 +195,7 @@ export default function Settings() {
           {/* ── Known settings ── */}
           <section>
             <h2 className="font-mono text-xs text-muted-foreground uppercase tracking-widest mb-6 pb-2 border-b border-border">
-              Club Information & Socials
+              Club Branding
             </h2>
             <div className="space-y-5">
               {knownSettings.map((s) => {

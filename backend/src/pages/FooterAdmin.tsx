@@ -62,7 +62,7 @@ const DEFAULT: FooterConfig = {
   follow_heading: 'Follow',
   follow_heading_color: 'pink',
   socials: [
-    { label: 'Instagram', href: '#', color: 'white' },
+    { label: 'Instagram', href: 'https://www.instagram.com/genzone_vitb', color: 'pink' },
     { label: 'LinkedIn',  href: '#', color: 'white' },
     { label: 'YouTube',   href: '#', color: 'white' },
     { label: 'X',         href: '#', color: 'white' },
@@ -130,22 +130,53 @@ export default function FooterAdmin() {
   async function fetchAll() {
     setLoading(true)
     try {
-      // Load footer_config from site_config
-      const { data: cfgRows } = await supabase
-        .from('site_config').select('*').eq('key', 'footer_config')
+      // Load footer_config from site_config and legacy settings keys to merge smoothly
+      const [{ data: cfgRows }, { data: settingsRows }] = await Promise.all([
+        supabase.from('site_config').select('*').eq('key', 'footer_config'),
+        supabase
+          .from('settings')
+          .select('key, value')
+          .in('key', ['logo_url', 'contact_email', 'location', 'footer_tagline', 'instagram', 'linkedin', 'youtube', 'twitter']),
+      ])
+
+      const legacy = Object.fromEntries((settingsRows ?? []).map(r => [r.key, r.value ?? ''])) as Record<string, string>
+      if (legacy.logo_url) setLogoUrl(legacy.logo_url)
+
+      let nextCfg: FooterConfig = { ...DEFAULT }
       if (cfgRows && cfgRows.length > 0) {
         const draft = cfgRows.find(r => r.status === 'draft')
         const pub   = cfgRows.find(r => r.status === 'published')
         const row   = draft ?? pub
         if (row?.value) {
-          setCfg({ ...DEFAULT, ...(row.value as any) })
+          nextCfg = { ...DEFAULT, ...(row.value as any) }
           setHasDraft(!!draft)
         }
       }
-      // Load logo from settings
-      const { data: logoRow } = await supabase
-        .from('settings').select('value').eq('key', 'logo_url').maybeSingle()
-      if (logoRow?.value) setLogoUrl(logoRow.value as string)
+
+      // Migrate non-placeholder legacy settings into footer config when footer still has defaults
+      const isValidVal = (v?: string) => Boolean(v && v.trim() && v.trim() !== '#')
+      if (nextCfg.contact_email === DEFAULT.contact_email && isValidVal(legacy.contact_email)) {
+        nextCfg.contact_email = legacy.contact_email
+      }
+      if (nextCfg.contact_location === DEFAULT.contact_location && isValidVal(legacy.location)) {
+        nextCfg.contact_location = legacy.location
+      }
+
+      nextCfg.socials = (nextCfg.socials?.length ? nextCfg.socials : DEFAULT.socials).map(s => {
+        const k = s.label.trim().toLowerCase()
+        const legacyKey = k.includes('insta') ? 'instagram' : k.includes('linkedin') ? 'linkedin' : k.includes('youtube') ? 'youtube' : (k === 'x' || k.includes('twitter')) ? 'twitter' : ''
+        const existingHref = s.href?.trim()
+        if (existingHref && existingHref !== '#') return s
+        if (legacyKey && isValidVal(legacy[legacyKey])) {
+          return { ...s, href: legacy[legacyKey] }
+        }
+        if (k.includes('insta')) {
+          return { ...s, href: 'https://www.instagram.com/genzone_vitb' }
+        }
+        return s
+      })
+
+      setCfg(nextCfg)
     } catch (e: any) {
       console.warn('FooterAdmin fetchAll:', e.message)
     } finally {
@@ -210,9 +241,11 @@ export default function FooterAdmin() {
         [{ key: 'footer_config', status: 'published', value: cfg, updated_at: new Date().toISOString() }],
         { onConflict: 'key,status' }
       )
-      // Remove draft if any
-      await supabase.from('site_config').delete()
-        .eq('key', 'footer_config').eq('status', 'draft')
+      // Remove draft if any and clean up legacy duplicate social/footer keys from settings
+      await Promise.all([
+        supabase.from('site_config').delete().eq('key', 'footer_config').eq('status', 'draft'),
+        supabase.from('settings').delete().in('key', ['instagram', 'linkedin', 'youtube', 'twitter', 'contact_email', 'location', 'footer_tagline']),
+      ])
       setHasDraft(false)
       toast.success('Footer published to live site!')
     } catch (e: any) {
@@ -236,19 +269,21 @@ export default function FooterAdmin() {
     </div>
   )
 
-  // Live preview ghost text style
+  // Live preview ghost text style — sized proportionally so it fits inside preview box
+  const previewLen = Math.max((cfg.ghost_text || 'GENZONE').length, 4)
   const ghostStyle = {
     background: `linear-gradient(90deg, ${cfg.ghost_text_gradient_from}, ${cfg.ghost_text_gradient_to})`,
     WebkitBackgroundClip: 'text' as const,
     WebkitTextFillColor: 'transparent' as const,
     backgroundClip: 'text' as const,
     opacity: cfg.ghost_text_opacity / 100,
-    fontSize: 'clamp(3rem, 15vw, 8rem)',
+    fontSize: `${Math.min(4.2, Math.max(1.8, 28 / previewLen))}rem`,
     fontWeight: 900,
     fontFamily: 'var(--font-display, sans-serif)',
     lineHeight: 1,
     userSelect: 'none' as const,
     letterSpacing: '-0.02em',
+    whiteSpace: 'nowrap' as const,
   }
 
   return (
@@ -402,21 +437,39 @@ export default function FooterAdmin() {
             </div>
             <div className="space-y-3">
               {cfg.socials.map((s, i) => (
-                <div key={i} className="flex gap-2 items-center bg-black/20 rounded-lg p-2 border border-border">
-                  <GripVertical size={14} className="text-muted-foreground shrink-0 cursor-grab" />
-                  <input value={s.label} onChange={e => updateSocial(i, 'label', e.target.value)}
-                    className={`${inputCls} w-24`} placeholder="Label" />
-                  <input value={s.href} onChange={e => updateSocial(i, 'href', e.target.value)}
-                    className={`${inputCls} flex-1`} placeholder="https://..." />
-                  <AccentSelect value={s.color} onChange={v => updateSocial(i, 'color', v)} />
-                  <button onClick={() => removeSocial(i)}
-                    className="text-muted-foreground hover:text-pink transition-colors shrink-0">
-                    <Trash2 size={13}/>
-                  </button>
+                <div key={i} className="space-y-2 bg-black/25 rounded-xl p-3 border border-border">
+                  <div className="flex gap-2 items-center">
+                    <GripVertical size={14} className="text-muted-foreground shrink-0 cursor-grab" />
+                    <input
+                      value={s.label}
+                      onChange={e => updateSocial(i, 'label', e.target.value)}
+                      className={`${inputCls} min-w-0 flex-1`}
+                      placeholder="Platform (e.g. Instagram)"
+                    />
+                    <AccentSelect value={s.color} onChange={v => updateSocial(i, 'color', v)} />
+                    <button
+                      type="button"
+                      onClick={() => removeSocial(i)}
+                      className="p-1.5 text-muted-foreground hover:text-pink transition-colors shrink-0"
+                      title="Remove link"
+                    >
+                      <Trash2 size={14}/>
+                    </button>
+                  </div>
+                  <input
+                    type="url"
+                    value={s.href === '#' ? '' : s.href}
+                    onChange={e => updateSocial(i, 'href', e.target.value.trim() || '#')}
+                    className={`${inputCls} w-full`}
+                    placeholder="https://www.instagram.com/genzone_vitb"
+                  />
                 </div>
               ))}
-              <button onClick={addSocial}
-                className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-cyan border border-cyan/40 hover:border-cyan rounded-lg px-3 py-1.5 transition-colors">
+              <button
+                type="button"
+                onClick={addSocial}
+                className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-cyan border border-cyan/40 hover:border-cyan rounded-lg px-3 py-1.5 transition-colors"
+              >
                 <Plus size={11}/> Add Link
               </button>
             </div>
@@ -487,10 +540,11 @@ export default function FooterAdmin() {
               {/* Top grid */}
               <div className="flex gap-6 flex-wrap mb-4">
                 {cfg.logo_visible && (
-                  <div className="shrink-0">
+                  <div className="relative shrink-0 p-1">
+                    <div className="pointer-events-none absolute -inset-1 rounded-full bg-gradient-to-tr from-cyan/35 via-pink/35 to-yellow/25 blur-md" />
                     {logoUrl
-                      ? <img src={logoUrl} alt="logo" className="w-16 h-16 object-contain mix-blend-screen" />
-                      : <div className="w-16 h-16 rounded-full border-2 border-cyan/30 flex items-center justify-center font-mono text-[8px] text-cyan">LOGO</div>
+                      ? <img src={logoUrl} alt="logo" className="relative w-16 h-16 object-contain mix-blend-screen drop-shadow-[0_0_12px_rgba(0,217,255,0.45)]" style={{ maskImage: 'radial-gradient(circle, black 58%, transparent 82%)', WebkitMaskImage: 'radial-gradient(circle, black 58%, transparent 82%)' }} />
+                      : <div className="relative w-16 h-16 rounded-full border-2 border-cyan/30 flex items-center justify-center font-mono text-[8px] text-cyan">LOGO</div>
                     }
                   </div>
                 )}

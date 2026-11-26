@@ -1,10 +1,20 @@
 import { useState, type FormEvent } from "react";
+import {
+  motion,
+  useMotionTemplate,
+  useMotionValue,
+  useReducedMotion,
+  useSpring,
+  useTransform,
+} from "motion/react";
 import { toast } from "sonner";
 import { Globe } from "lucide-react";
 import { contact as fallbackContact } from "@/content/genzone";
 import { supabase } from "@/lib/supabase";
 import { SectionTag, SplitHeading } from "./shared";
 import { useSiteConfig } from "@/lib/config-context";
+
+const DEFAULT_INSTAGRAM_URL = "https://www.instagram.com/genzone_vitb";
 
 const kinds = ["Idea", "Feedback", "Collab", "Other"];
 const field = "w-full min-w-0 border-0 border-b-2 bg-transparent py-3.5 text-base outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-cyan md:py-4 md:text-lg";
@@ -149,6 +159,97 @@ const COLOR_MAP: Record<string, string> = {
   white: '#ffffff',
 };
 
+function FooterLogo3D({ src, alt }: { src: string; alt: string }) {
+  const reduce = useReducedMotion();
+  const mx = useMotionValue(0);
+  const my = useMotionValue(0);
+  const spotOpacity = useMotionValue(0);
+
+  const rotateX = useSpring(useTransform(my, [-0.5, 0.5], [18, -18]), { stiffness: 180, damping: 16 });
+  const rotateY = useSpring(useTransform(mx, [-0.5, 0.5], [-20, 20]), { stiffness: 180, damping: 16 });
+  const glareX = useTransform(mx, [-0.5, 0.5], [15, 85]);
+  const glareY = useTransform(my, [-0.5, 0.5], [15, 85]);
+  const glareBg = useMotionTemplate`radial-gradient(circle at ${glareX}% ${glareY}%, rgba(255,255,255,0.28) 0%, rgba(0,217,255,0.12) 35%, transparent 65%)`;
+
+  const isCoarse = typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches;
+
+  function onPointerMove(e: React.PointerEvent<HTMLDivElement>) {
+    if (reduce || isCoarse) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    mx.set((e.clientX - rect.left) / rect.width - 0.5);
+    my.set((e.clientY - rect.top) / rect.height - 0.5);
+    spotOpacity.set(1);
+  }
+
+  function onPointerLeave() {
+    mx.set(0);
+    my.set(0);
+    spotOpacity.set(0);
+  }
+
+  return (
+    <motion.div
+      className="group relative flex h-28 w-28 shrink-0 items-center justify-center sm:h-36 sm:w-36 md:h-44 md:w-44"
+      style={{ perspective: 900 }}
+      onPointerMove={onPointerMove}
+      onPointerLeave={onPointerLeave}
+      animate={reduce ? undefined : { y: [0, -6, 0] }}
+      transition={reduce ? undefined : { duration: 5.5, repeat: Infinity, ease: "easeInOut" }}
+    >
+      {/* Ambient multi-color neon glow halo */}
+      <div
+        className="pointer-events-none absolute -inset-3 rounded-full bg-gradient-to-tr from-cyan/45 via-pink/40 to-yellow/30 opacity-75 blur-2xl transition-opacity duration-300 group-hover:opacity-100"
+        aria-hidden="true"
+      />
+
+      {/* 3D tilting medallion stage */}
+      <motion.div
+        style={{
+          rotateX: reduce ? 0 : rotateX,
+          rotateY: reduce ? 0 : rotateY,
+          transformStyle: "preserve-3d",
+        }}
+        animate={reduce ? undefined : { rotateY: [-6, 6, -6], rotateX: [3, -3, 3] }}
+        transition={reduce ? undefined : { duration: 7, repeat: Infinity, ease: "easeInOut" }}
+        whileHover={reduce || isCoarse ? undefined : { scale: 1.07 }}
+        className="relative flex h-full w-full items-center justify-center rounded-full border border-white/15 bg-gradient-to-br from-white/[0.1] via-black/75 to-black/95 shadow-[0_18px_42px_rgba(0,0,0,0.85),0_0_32px_rgba(0,217,255,0.28),0_0_54px_rgba(255,22,138,0.24)]"
+      >
+        {/* Dashed orbital neon ring */}
+        <div
+          className={`pointer-events-none absolute inset-1.5 rounded-full border border-dashed border-cyan/45 ${reduce ? "" : "animate-spin [animation-duration:26s]"}`}
+          style={{ transform: "translateZ(-4px)" }}
+          aria-hidden="true"
+        />
+
+        {/* Extruded glowing logo plane */}
+        <img
+          src={src}
+          alt={alt}
+          className="logo-glow relative h-[86%] w-[86%] object-contain mix-blend-screen transition-transform duration-300"
+          style={{
+            transform: "translateZ(26px)",
+            maskImage: "radial-gradient(circle, black 56%, transparent 79%)",
+            WebkitMaskImage: "radial-gradient(circle, black 56%, transparent 79%)",
+          }}
+        />
+
+        {/* Dynamic specular glare */}
+        {!reduce && (
+          <motion.div
+            className="pointer-events-none absolute inset-0 rounded-full"
+            style={{
+              background: glareBg,
+              opacity: spotOpacity,
+              transform: "translateZ(36px)",
+            }}
+            aria-hidden="true"
+          />
+        )}
+      </motion.div>
+    </motion.div>
+  );
+}
+
 export function Footer() {
   const config = useSiteConfig();
 
@@ -182,7 +283,7 @@ export function Footer() {
 
   // Social links: merge admin footer_config with legacy settings/site_identity fallbacks
   const rawSocials: { label: string; href: string; color?: string }[] = fc.socials ?? [
-    { label: "Instagram", href: siteId.instagram || (config["instagram"] as string) || "#" },
+    { label: "Instagram", href: siteId.instagram || (config["instagram"] as string) || DEFAULT_INSTAGRAM_URL, color: "pink" },
     { label: "LinkedIn",  href: siteId.linkedin  || (config["linkedin"] as string)  || "#" },
     { label: "YouTube",   href: siteId.youtube   || (config["youtube"] as string)   || "#" },
     { label: "X",         href: siteId.twitter   || (config["twitter"] as string)   || "#" },
@@ -194,7 +295,8 @@ export function Footer() {
     const fallbackHref = legacyKey ? (siteId[legacyKey] || (config[legacyKey] as string) || "") : "";
     const url =
       normalizeFooterSocialUrl(s.label, s.href) ||
-      normalizeFooterSocialUrl(s.label, fallbackHref);
+      normalizeFooterSocialUrl(s.label, fallbackHref) ||
+      (key.includes("insta") ? DEFAULT_INSTAGRAM_URL : null);
     return { ...s, url };
   });
 
@@ -213,10 +315,8 @@ export function Footer() {
         ['--ft-pb' as string]: `${paddingBottom}px`,
       }}
     >
-      <div className="grid gap-8 sm:gap-10 md:grid-cols-[auto_1fr_1fr] md:gap-12">
-        {logoVisible && (
-          <img src={displayLogo} alt={clubName} className="logo-glow w-24 mix-blend-screen sm:w-32 md:w-40" />
-        )}
+      <div className="grid items-center gap-8 sm:gap-10 md:grid-cols-[auto_1fr_1fr] md:gap-12">
+        {logoVisible && <FooterLogo3D src={displayLogo} alt={clubName} />}
         <div className="min-w-0">
           <p className="mb-3 font-mono text-xs uppercase tracking-widest md:mb-4" style={{ color: contactColor }}>
             {contactHeading}
@@ -248,11 +348,10 @@ export function Footer() {
             ) : (
               <li>
                 <a
-                  href={`https://instagram.com/`}
+                  href={DEFAULT_INSTAGRAM_URL}
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="Instagram"
-                  title="Update club Instagram URL in Admin → Footer"
                   className="inline-flex items-center gap-2 rounded-full border border-pink/40 bg-pink/10 px-4 py-2 text-sm text-pink transition-all hover:-translate-y-1 hover:border-pink hover:bg-pink/20"
                 >
                   <SocialIcon label={instagramItem?.label || "Instagram"} />
