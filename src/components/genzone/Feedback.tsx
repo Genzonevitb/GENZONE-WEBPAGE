@@ -19,39 +19,161 @@ const DEFAULT_INSTAGRAM_URL = "https://www.instagram.com/genzone_vitb";
 const kinds = ["Idea", "Feedback", "Collab", "Other"];
 const field = "w-full min-w-0 border-0 border-b-2 bg-transparent py-3.5 text-base outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-cyan md:py-4 md:text-lg";
 
-function SocialIcon({ label }: { label: string }) {
-  const key = label.trim().toLowerCase();
-  if (key.includes("insta")) {
+function detectSocialKind(label: string, url?: string | null): "instagram" | "linkedin" | "youtube" | "x" | "other" {
+  const key = `${label} ${url ?? ""}`.trim().toLowerCase();
+  if (key.includes("insta")) return "instagram";
+  if (key.includes("linkedin")) return "linkedin";
+  if (key.includes("youtube") || key.includes("youtu.be")) return "youtube";
+  if (label.trim().toLowerCase() === "x" || key.includes("twitter") || key.includes("x.com")) return "x";
+  return "other";
+}
+
+function SocialGlyph({ kind }: { kind: ReturnType<typeof detectSocialKind> }) {
+  if (kind === "instagram") {
     return (
-      <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <svg className="h-4 w-4 shrink-0 text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.65)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
         <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
         <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
       </svg>
     );
   }
-  if (key.includes("linkedin")) {
+  if (kind === "linkedin") {
     return (
-      <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <svg className="h-4 w-4 shrink-0 text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.65)]" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
         <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.46 8.76a1.68 1.68 0 1 0 0-3.36 1.68 1.68 0 0 0 0 3.36M5.07 18.5h2.78v-8.37H5.07v8.37Z" />
       </svg>
     );
   }
-  if (key.includes("youtube")) {
+  if (kind === "youtube") {
     return (
-      <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <svg className="h-4 w-4 shrink-0 text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.65)]" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
         <path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2 31.2 31.2 0 0 0 0 12a31.2 31.2 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1A31.2 31.2 0 0 0 24 12a31.2 31.2 0 0 0-.5-5.8ZM9.6 15.6V8.4l6.3 3.6-6.3 3.6Z" />
       </svg>
     );
   }
-  if (key === "x" || key.includes("twitter")) {
+  if (kind === "x") {
     return (
-      <svg className="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <svg className="h-3.5 w-3.5 shrink-0 text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.65)]" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
         <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
       </svg>
     );
   }
-  return <Globe className="h-4 w-4 shrink-0" aria-hidden="true" />;
+  return <Globe className="h-4 w-4 shrink-0 text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.65)]" aria-hidden="true" />;
+}
+
+const SOCIAL_BADGE_THEME: Record<
+  ReturnType<typeof detectSocialKind>,
+  { badge: string; pillGlow: string }
+> = {
+  instagram: {
+    badge:
+      "bg-gradient-to-tr from-[#f9ce34] via-[#ee2a7b] to-[#6228d7] shadow-[inset_0_1px_1px_rgba(255,255,255,0.65),0_3px_0_#7a1046,0_0_18px_rgba(238,42,123,0.75)] group-hover:shadow-[inset_0_1px_1px_rgba(255,255,255,0.8),0_4px_0_#7a1046,0_0_28px_rgba(238,42,123,0.95)]",
+    pillGlow:
+      "border-pink/35 shadow-[0_6px_0_rgba(0,0,0,0.85),0_10px_28px_rgba(255,22,138,0.28),0_0_22px_rgba(238,42,123,0.2)] hover:border-pink/70 hover:shadow-[0_10px_0_rgba(0,0,0,0.85),0_14px_34px_rgba(255,22,138,0.42),0_0_32px_rgba(238,42,123,0.38)]",
+  },
+  linkedin: {
+    badge:
+      "bg-gradient-to-tr from-[#0077b5] to-[#00bfff] shadow-[inset_0_1px_1px_rgba(255,255,255,0.6),0_3px_0_#004182,0_0_16px_rgba(0,191,255,0.6)] group-hover:shadow-[inset_0_1px_1px_rgba(255,255,255,0.8),0_4px_0_#004182,0_0_24px_rgba(0,191,255,0.9)]",
+    pillGlow:
+      "border-cyan/30 shadow-[0_6px_0_rgba(0,0,0,0.85),0_10px_24px_rgba(0,217,255,0.22)] hover:border-cyan/70 hover:shadow-[0_10px_0_rgba(0,0,0,0.85),0_14px_32px_rgba(0,217,255,0.38)]",
+  },
+  youtube: {
+    badge:
+      "bg-gradient-to-tr from-[#cc0000] to-[#ff4d4d] shadow-[inset_0_1px_1px_rgba(255,255,255,0.55),0_3px_0_#7f0000,0_0_16px_rgba(255,30,60,0.6)] group-hover:shadow-[inset_0_1px_1px_rgba(255,255,255,0.8),0_4px_0_#7f0000,0_0_24px_rgba(255,30,60,0.9)]",
+    pillGlow:
+      "border-red-500/30 shadow-[0_6px_0_rgba(0,0,0,0.85),0_10px_24px_rgba(255,30,60,0.22)] hover:border-red-400/70 hover:shadow-[0_10px_0_rgba(0,0,0,0.85),0_14px_32px_rgba(255,30,60,0.38)]",
+  },
+  x: {
+    badge:
+      "bg-gradient-to-tr from-zinc-800 to-zinc-600 shadow-[inset_0_1px_1px_rgba(255,255,255,0.5),0_3px_0_#09090b,0_0_14px_rgba(255,255,255,0.3)] group-hover:shadow-[inset_0_1px_1px_rgba(255,255,255,0.7),0_4px_0_#09090b,0_0_22px_rgba(255,255,255,0.5)]",
+    pillGlow:
+      "border-white/25 shadow-[0_6px_0_rgba(0,0,0,0.85),0_10px_24px_rgba(255,255,255,0.12)] hover:border-white/60 hover:shadow-[0_10px_0_rgba(0,0,0,0.85),0_14px_32px_rgba(255,255,255,0.22)]",
+  },
+  other: {
+    badge:
+      "bg-gradient-to-tr from-cyan/80 to-pink/80 shadow-[inset_0_1px_1px_rgba(255,255,255,0.6),0_3px_0_#164e63,0_0_16px_rgba(0,217,255,0.55)] group-hover:shadow-[inset_0_1px_1px_rgba(255,255,255,0.8),0_4px_0_#164e63,0_0_24px_rgba(0,217,255,0.85)]",
+    pillGlow:
+      "border-white/20 shadow-[0_6px_0_rgba(0,0,0,0.85),0_10px_24px_rgba(0,217,255,0.18)] hover:border-yellow/70 hover:shadow-[0_10px_0_rgba(0,0,0,0.85),0_14px_32px_rgba(0,217,255,0.3)]",
+  },
+};
+
+function FooterSocialButton3D({
+  label,
+  url,
+  color,
+}: {
+  label: string;
+  url: string;
+  color?: string | undefined;
+}) {
+  const reduce = useReducedMotion();
+  const kind = detectSocialKind(label, url);
+  const theme = SOCIAL_BADGE_THEME[kind];
+  const displayLabel =
+    !label.trim() || label.trim().toLowerCase() === "new link"
+      ? kind === "instagram"
+        ? "Instagram"
+        : kind === "linkedin"
+          ? "LinkedIn"
+          : kind === "youtube"
+            ? "YouTube"
+            : kind === "x"
+              ? "X"
+              : "Link"
+      : label;
+
+  return (
+    <div style={{ perspective: 650 }}>
+      <motion.a
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label={displayLabel}
+        whileHover={reduce ? undefined : { y: -4, rotateX: 12, rotateY: -6, scale: 1.04 }}
+        whileTap={reduce ? undefined : { y: 1, scale: 0.96 }}
+        transition={{ type: "spring", stiffness: 320, damping: 18 }}
+        className={`group relative inline-flex items-center gap-3 overflow-hidden rounded-2xl border bg-gradient-to-b from-white/[0.12] via-white/[0.04] to-black/65 py-2 pl-2.5 pr-4 text-sm font-medium backdrop-blur-md transition-shadow duration-300 ${theme.pillGlow}`}
+        style={{
+          color: color ? COLOR_MAP[color] ?? undefined : undefined,
+          transformStyle: "preserve-3d",
+        }}
+      >
+        {/* Top specular glass rim */}
+        <span
+          className="pointer-events-none absolute inset-x-2 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent"
+          aria-hidden="true"
+        />
+
+        {/* Hover sheen sweep */}
+        {!reduce && (
+          <span
+            className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/15 to-transparent transition-transform duration-700 group-hover:translate-x-full"
+            aria-hidden="true"
+          />
+        )}
+
+        {/* 3D glowing icon tile */}
+        <span
+          className={`relative flex h-8 w-8 shrink-0 items-center justify-center rounded-xl transition-all duration-300 group-hover:-translate-y-0.5 ${theme.badge}`}
+          style={{ transform: "translateZ(14px)" }}
+        >
+          <SocialGlyph kind={kind} />
+        </span>
+
+        <span className="relative tracking-wide" style={{ transform: "translateZ(10px)" }}>
+          {displayLabel}
+        </span>
+        <span
+          aria-hidden="true"
+          className="relative opacity-70 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:opacity-100"
+          style={{ transform: "translateZ(10px)" }}
+        >
+          ↗
+        </span>
+      </motion.a>
+    </div>
+  );
 }
 
 function normalizeFooterSocialUrl(label: string, raw?: string | null): string | null {
@@ -328,36 +450,20 @@ export function Footer() {
           <p className="mb-3 font-mono text-xs uppercase tracking-widest md:mb-4" style={{ color: followColor }}>
             {followHeading}
           </p>
-          <ul className="flex flex-wrap gap-2.5 sm:gap-3">
+          <ul className="flex flex-wrap gap-3 sm:gap-3.5">
             {activeSocials.length > 0 ? (
-              activeSocials.map((s) => (
-                <li key={s.label}>
-                  <a
-                    href={s.url!}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 rounded-full border border-white/20 px-4 py-2 text-sm transition-all hover:-translate-y-1 hover:border-yellow"
-                    style={{ color: s.color ? COLOR_MAP[s.color] ?? undefined : undefined }}
-                  >
-                    <SocialIcon label={s.label} />
-                    <span>{s.label}</span>
-                    <span aria-hidden="true">↗</span>
-                  </a>
+              activeSocials.map((s, idx) => (
+                <li key={`${s.label}-${idx}`}>
+                  <FooterSocialButton3D label={s.label} url={s.url!} color={s.color} />
                 </li>
               ))
             ) : (
               <li>
-                <a
-                  href={DEFAULT_INSTAGRAM_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="Instagram"
-                  className="inline-flex items-center gap-2 rounded-full border border-pink/40 bg-pink/10 px-4 py-2 text-sm text-pink transition-all hover:-translate-y-1 hover:border-pink hover:bg-pink/20"
-                >
-                  <SocialIcon label={instagramItem?.label || "Instagram"} />
-                  <span>{instagramItem?.label || "Instagram"}</span>
-                  <span aria-hidden="true">↗</span>
-                </a>
+                <FooterSocialButton3D
+                  label={instagramItem?.label || "Instagram"}
+                  url={DEFAULT_INSTAGRAM_URL}
+                  color="pink"
+                />
               </li>
             )}
           </ul>
