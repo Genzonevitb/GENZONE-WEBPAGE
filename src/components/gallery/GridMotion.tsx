@@ -185,7 +185,14 @@ const GridMotion = ({
       setSize((current) => (current.width === width && current.height === height ? current : { width, height }));
     });
     observer.observe(root);
+    const interactive = settings.parallax > 0 || settings.spotlight > 0;
     const motion = motionRef.current;
+    if (!interactive) {
+      motion.pointer.active = false;
+      return () => {
+        observer.disconnect();
+      };
+    }
     const onMove = (event: PointerEvent) => {
       motion.pointer.x = event.clientX;
       motion.pointer.y = event.clientY;
@@ -210,7 +217,7 @@ const GridMotion = ({
       window.removeEventListener('blur', onLeave);
       document.documentElement.removeEventListener('pointerleave', onLeave);
     };
-  }, []);
+  }, [settings.parallax, settings.spotlight]);
 
   useEffect(() => {
     const root = rootRef.current;

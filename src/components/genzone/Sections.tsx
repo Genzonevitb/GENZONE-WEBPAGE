@@ -1,4 +1,4 @@
-import { AnimatePresence, motion, useReducedMotion, useScroll, useTransform } from "motion/react";
+import { AnimatePresence, motion, useMotionTemplate, useMotionValue, useReducedMotion, useScroll, useTransform } from "motion/react";
 import { useEffect, useMemo, useRef, useState, useCallback, lazy, Suspense } from "react";
 import { DEFAULT_CARD_CONFIG } from "@/components/panel3d/cardDefaults";
 import type { CardConfig } from "@/components/panel3d/cardDefaults";
@@ -497,6 +497,395 @@ interface EventDetailsPopupProps {
   onSelectEvent: (event: DbEvent, index: number) => void;
 }
 
+// ─── Registration Panel (Glassmorphism) ───────────────────────────────────────
+
+interface RegistrationPanelProps {
+  isRegistrationClosed: boolean;
+  registerTargetUrl: string | null;
+  buttonLabel: string;
+  icsHref: string | null;
+  copied: boolean;
+  onShare: () => void;
+  reduceMotion: boolean;
+}
+
+function RegistrationPanel({
+  isRegistrationClosed,
+  registerTargetUrl,
+  buttonLabel,
+  icsHref,
+  copied,
+  onShare,
+  reduceMotion,
+}: RegistrationPanelProps) {
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  // Motion values for spotlight — zero re-renders
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+  const spotOpacity = useMotionValue(0);
+  const spotlightBg = useMotionTemplate`radial-gradient(280px circle at ${mouseX}px ${mouseY}px, rgba(0,217,255,0.08) 0%, transparent 70%)`;
+
+  // Animated conic-gradient border angle
+  const borderAngle = useMotionValue(0);
+  const borderGradient = useMotionTemplate`conic-gradient(from ${borderAngle}deg at 50% 50%, #00D9FF 0deg, #FF168A 120deg, #FFD500 240deg, #00D9FF 360deg)`;
+
+  // Animate border on mount (loop)
+  useEffect(() => {
+    if (reduceMotion) return;
+    let frame: number;
+    let angle = 0;
+    const animate = () => {
+      angle = (angle + 0.5) % 360;
+      borderAngle.set(angle);
+      frame = requestAnimationFrame(animate);
+    };
+    frame = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(frame);
+  }, [reduceMotion, borderAngle]);
+
+  // Pointer tracking — coarse pointer (touch) guard
+  const isCoarse = typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches;
+
+  function handleMouseMove(e: React.MouseEvent<HTMLDivElement>) {
+    if (reduceMotion || isCoarse || !panelRef.current) return;
+    const rect = panelRef.current.getBoundingClientRect();
+    mouseX.set(e.clientX - rect.left);
+    mouseY.set(e.clientY - rect.top);
+  }
+  function handleMouseEnter() {
+    if (reduceMotion || isCoarse) return;
+    spotOpacity.set(1);
+  }
+  function handleMouseLeave() {
+    spotOpacity.set(0);
+  }
+
+  const isOpen = !isRegistrationClosed && !!registerTargetUrl;
+  const isSoon = !isRegistrationClosed && !registerTargetUrl;
+
+  return (
+    <div className="sticky bottom-0 z-20 p-3 sm:p-4">
+      {/* Animated gradient border wrapper */}
+      <motion.div
+        initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{
+          duration: reduceMotion ? 0.2 : 0.4,
+          delay: reduceMotion ? 0 : 0.42,
+          ease: [0.22, 1, 0.36, 1],
+        }}
+        className="rounded-2xl p-px relative overflow-hidden"
+        style={
+          reduceMotion
+            ? { background: "linear-gradient(135deg, rgba(0,217,255,0.3), rgba(255,22,138,0.3))" }
+            : {}
+        }
+      >
+        {/* Animated conic border layer */}
+        {!reduceMotion && (
+          <motion.div
+            className="absolute inset-0 rounded-2xl"
+            style={{ background: borderGradient, opacity: 0.75 }}
+          />
+        )}
+        {/* Soft outer glow blur (behind glass) */}
+        {!reduceMotion && (
+          <motion.div
+            className="absolute inset-0 rounded-2xl blur-md scale-105 -z-10"
+            style={{ background: borderGradient, opacity: 0.2 }}
+          />
+        )}
+
+        {/* Glass surface — solid dark bg so gradient only shows at the 1px border edge */}
+        <div
+          ref={panelRef}
+          onMouseMove={handleMouseMove}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+          className="relative rounded-[15px] overflow-hidden
+            bg-[#0d0d12]/95 backdrop-blur-lg
+            shadow-[0_8px_32px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.07)]"
+        >
+          {/* Spotlight overlay */}
+          <motion.div
+            className="pointer-events-none absolute inset-0 z-0 rounded-[15px]"
+            style={{ background: spotlightBg, opacity: spotOpacity }}
+          />
+
+          {/* Top inner highlight sheen */}
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+
+          {/* Content */}
+          <div className="relative z-10 p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-3">
+
+            {/* Left: Utility buttons */}
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              {icsHref && (
+                <motion.a
+                  href={icsHref}
+                  download
+                  whileHover={reduceMotion ? {} : { y: -1, borderColor: "rgba(0,217,255,0.6)" }}
+                  whileTap={reduceMotion ? {} : { scale: 0.97 }}
+                  className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl
+                    border border-white/10 bg-white/5 hover:bg-white/10
+                    text-xs font-mono text-white/70 hover:text-white
+                    transition-colors duration-200"
+                  title="Add to Calendar (.ics)"
+                >
+                  <CalendarIcon size={13} className="text-cyan shrink-0" />
+                  <span className="hidden sm:inline">Add to Calendar</span>
+                  <span className="sm:hidden">Calendar</span>
+                </motion.a>
+              )}
+
+              <motion.button
+                onClick={onShare}
+                whileHover={reduceMotion ? {} : { y: -1, borderColor: "rgba(255,22,138,0.6)" }}
+                whileTap={reduceMotion ? {} : { scale: 0.97 }}
+                className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl
+                  border border-white/10 bg-white/5 hover:bg-white/10
+                  text-xs font-mono text-white/70 hover:text-white
+                  transition-colors duration-200"
+                title="Share event link"
+              >
+                <AnimatePresence mode="wait" initial={false}>
+                  {copied ? (
+                    <motion.span
+                      key="copied"
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.8 }}
+                      className="inline-flex items-center gap-1.5 text-cyan"
+                    >
+                      <Check size={13} />
+                      Copied!
+                    </motion.span>
+                  ) : (
+                    <motion.span
+                      key="share"
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.8 }}
+                      className="inline-flex items-center gap-1.5"
+                    >
+                      <Share2 size={13} className="text-pink shrink-0" />
+                      Share
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+              </motion.button>
+            </div>
+
+            {/* Right: Register CTA */}
+            <div className="w-full sm:w-auto sm:min-w-[200px]">
+              <AnimatePresence mode="wait" initial={false}>
+                {isRegistrationClosed ? (
+                  <motion.div
+                    key="closed"
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -4 }}
+                    className="w-full flex items-center justify-center gap-2 py-3 px-6 rounded-xl
+                      font-mono text-xs uppercase tracking-widest
+                      border border-white/10 bg-white/5 text-white/35
+                      cursor-not-allowed select-none"
+                  >
+                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-white/25" />
+                    {buttonLabel}
+                  </motion.div>
+                ) : isOpen ? (
+                  <motion.a
+                    key="open"
+                    href={registerTargetUrl!}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -4 }}
+                    whileHover={reduceMotion ? {} : { scale: 1.02, boxShadow: "0 0 28px rgba(0,217,255,0.45)" }}
+                    whileTap={reduceMotion ? {} : { scale: 0.97 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                    className="w-full inline-flex items-center justify-center gap-2 py-3 px-6 rounded-xl
+                      font-mono text-xs uppercase tracking-widest font-bold
+                      bg-gradient-to-r from-cyan to-cyan/80 text-black
+                      shadow-[0_0_20px_rgba(0,217,255,0.3)]
+                      transition-shadow duration-300"
+                  >
+                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-black/40 animate-pulse" />
+                    {buttonLabel}
+                    <ExternalLink size={13} className="shrink-0" />
+                  </motion.a>
+                ) : (
+                  <motion.div
+                    key="soon"
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -4 }}
+                    className="w-full flex items-center justify-center gap-2 py-3 px-6 rounded-xl
+                      font-mono text-xs uppercase tracking-widest
+                      border border-cyan/25 bg-cyan/8 text-cyan/60
+                      cursor-not-allowed select-none"
+                  >
+                    <Clock size={13} className="shrink-0 animate-pulse" />
+                    Registration Coming Soon
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
+const SPLIT_EASE: [number, number, number, number] = [0.77, 0, 0.175, 1];
+const SPLIT_DURATION = 0.8;
+const SPLIT_DELAY = 0.12;
+
+function EventBannerSplitReveal({
+  event,
+  reduceMotion,
+}: {
+  event: DbEvent;
+  reduceMotion: boolean;
+}) {
+  const [revealComplete, setRevealComplete] = useState(false);
+
+  useEffect(() => {
+    setRevealComplete(false);
+  }, [event.id]);
+
+  return (
+    <div className="relative aspect-[16/9] w-full shrink-0 overflow-hidden bg-charcoal">
+      {event.image_url ? (
+        <>
+          {/* Underlying cover image zooming out cleanly from 1.08 -> 1.0 */}
+          <motion.img
+            src={event.image_url}
+            alt={event.title}
+            decoding="sync"
+            initial={reduceMotion ? { opacity: 0 } : { scale: 1.08, opacity: 1 }}
+            animate={reduceMotion ? { opacity: 1 } : { scale: 1, opacity: 1 }}
+            transition={{
+              duration: reduceMotion ? 0.25 : SPLIT_DURATION,
+              delay: reduceMotion ? 0 : SPLIT_DELAY,
+              ease: SPLIT_EASE,
+            }}
+            className="h-full w-full object-cover will-change-transform"
+          />
+
+          {/* Vertical Split Door Panels — unmounted once reveal completes */}
+          {!reduceMotion && !revealComplete && (
+            <div
+              className="pointer-events-none absolute inset-0 z-[5] overflow-hidden"
+              aria-hidden="true"
+            >
+              {(["left", "right"] as const).map((side) => {
+                const isLeft = side === "left";
+                return (
+                  <motion.div
+                    key={side}
+                    initial={{ x: "0%", opacity: 1 }}
+                    animate={{ x: isLeft ? "-52%" : "52%", opacity: [1, 0.92, 0] }}
+                    transition={{
+                      x: {
+                        duration: SPLIT_DURATION,
+                        delay: SPLIT_DELAY,
+                        ease: SPLIT_EASE,
+                      },
+                      opacity: {
+                        duration: SPLIT_DURATION,
+                        delay: SPLIT_DELAY,
+                        times: [0, 0.55, 1],
+                        ease: "easeOut",
+                      },
+                    }}
+                    {...(!isLeft
+                      ? { onAnimationComplete: () => setRevealComplete(true) }
+                      : {})}
+                    className="pointer-events-none absolute inset-0 will-change-transform"
+                    style={{
+                      clipPath: isLeft
+                        ? "inset(0 49.9% 0 0)"
+                        : "inset(0 0 0 49.9%)",
+                    }}
+                  >
+                    <img
+                      src={event.image_url!}
+                      alt=""
+                      decoding="sync"
+                      className="h-full w-full object-cover"
+                    />
+                    {/* Curtain depth & parting center edge sheen after split begins */}
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 0.62 }}
+                      transition={{
+                        duration: SPLIT_DURATION * 0.45,
+                        delay: SPLIT_DELAY + 0.04,
+                        ease: "easeOut",
+                      }}
+                      className="absolute inset-0 bg-black"
+                    />
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: [0, 0.9, 0.35, 0] }}
+                      transition={{
+                        duration: SPLIT_DURATION,
+                        delay: SPLIT_DELAY + 0.02,
+                        ease: "easeOut",
+                      }}
+                      className="absolute inset-y-0 left-1/2 w-[2px] -translate-x-1/2 bg-gradient-to-b from-cyan/80 via-white/90 to-pink/80"
+                    />
+                  </motion.div>
+                );
+              })}
+            </div>
+          )}
+
+          <div className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-t from-background via-background/50 to-transparent" />
+        </>
+      ) : (
+        <>
+          <div className="placeholder-tile absolute inset-0" />
+          <div
+            className={`absolute -right-16 -top-16 h-64 w-64 rounded-full blur-3xl opacity-60 ${accentBg[event.accent]}`}
+          />
+          <div className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-t from-background via-background/40 to-transparent" />
+        </>
+      )}
+
+      <motion.div
+        initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{
+          duration: reduceMotion ? 0.2 : 0.45,
+          delay: reduceMotion ? 0 : SPLIT_DELAY,
+          ease: [0.22, 1, 0.36, 1],
+        }}
+        className="absolute bottom-4 left-4 right-4 z-20 space-y-2"
+      >
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="font-mono text-[10px] uppercase tracking-widest text-white/80 bg-black/60 border border-white/20 rounded-full px-3 py-1">
+            {event.category || "Club Event"}
+          </span>
+          {event.featured && (
+            <span className="font-mono text-[10px] uppercase tracking-widest text-yellow bg-yellow/10 border border-yellow/30 rounded-full px-2.5 py-1 flex items-center gap-1">
+              <Sparkles size={11} /> Featured
+            </span>
+          )}
+        </div>
+        <h2 className="font-display text-2xl sm:text-4xl font-black uppercase text-white leading-tight">
+          {event.title}
+        </h2>
+      </motion.div>
+    </div>
+  );
+}
+
 function EventDetailsPopup({
   event,
   events,
@@ -631,7 +1020,7 @@ function EventDetailsPopup({
         className="relative flex flex-col w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border border-white/15 bg-background shadow-2xl focus:outline-none"
       >
         {/* Navigation Arrows & Close Button */}
-        <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
+        <div className="absolute top-4 right-4 z-30 flex items-center gap-2">
           {events.length > 1 && (
             <div className="flex items-center gap-1 bg-black/60 backdrop-blur-sm border border-white/15 rounded-full p-1">
               <button
@@ -662,137 +1051,126 @@ function EventDetailsPopup({
           </button>
         </div>
 
-        {/* Header / Banner */}
-        <div className="relative aspect-[16/9] w-full shrink-0 overflow-hidden bg-charcoal">
-          {event.image_url ? (
-            <>
-              <img
-                src={event.image_url}
-                alt={event.title}
-                className="h-full w-full object-cover"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />
-            </>
-          ) : (
-            <>
-              <div className="placeholder-tile absolute inset-0" />
-              <div
-                className={`absolute -right-16 -top-16 h-64 w-64 rounded-full blur-3xl opacity-60 ${accentBg[event.accent]}`}
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
-            </>
-          )}
-
-          <div className="absolute bottom-4 left-4 right-4 z-10 space-y-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="font-mono text-[10px] uppercase tracking-widest text-white/80 bg-black/60 border border-white/20 rounded-full px-3 py-1">
-                {event.category || "Club Event"}
-              </span>
-              {event.featured && (
-                <span className="font-mono text-[10px] uppercase tracking-widest text-yellow bg-yellow/10 border border-yellow/30 rounded-full px-2.5 py-1 flex items-center gap-1">
-                  <Sparkles size={11} /> Featured
-                </span>
-              )}
-            </div>
-            <h2 className="font-display text-2xl sm:text-4xl font-black uppercase text-white leading-tight">
-              {event.title}
-            </h2>
-          </div>
-        </div>
+        {/* Header / Banner — Vertical Split Image Reveal keyed by event.id */}
+        <EventBannerSplitReveal
+          key={`banner-${event.id}`}
+          event={event}
+          reduceMotion={!!reduceMotion}
+        />
 
         {/* Content Body */}
-        <div className="p-6 space-y-6 flex-1">
-
+        <motion.div
+          key={`body-${event.id}`}
+          initial="hidden"
+          animate="visible"
+          variants={
+            reduceMotion
+              ? { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { duration: 0.2 } } }
+              : {
+                  hidden: {},
+                  visible: {
+                    transition: {
+                      staggerChildren: 0.065,
+                      delayChildren: 0.18,
+                    },
+                  },
+                }
+          }
+          className="p-6 space-y-6 flex-1"
+        >
           {/* Quick Specs Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            <div className="bg-charcoal border border-border/80 rounded-xl p-3 flex items-start gap-2.5">
-              <CalendarIcon size={16} className={`mt-0.5 shrink-0 ${accentText[event.accent]}`} />
-              <div className="min-w-0">
-                <span className="block font-mono text-[9px] uppercase tracking-wider text-muted-foreground">
-                  Date
-                </span>
-                <span className="font-mono text-xs text-white truncate block">
-                  {event.event_date
-                    ? new Date(event.event_date).toLocaleDateString("en-IN", {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                      })
-                    : "Date TBA"}
-                </span>
-              </div>
-            </div>
-
-            <div className="bg-charcoal border border-border/80 rounded-xl p-3 flex items-start gap-2.5">
-              <MapPin size={16} className={`mt-0.5 shrink-0 ${accentText[event.accent]}`} />
-              <div className="min-w-0">
-                <span className="block font-mono text-[9px] uppercase tracking-wider text-muted-foreground">
-                  Venue
-                </span>
-                <span className="font-mono text-xs text-white truncate block">
-                  {event.venue || "Campus / Online"}
-                </span>
-              </div>
-            </div>
-
-            <div className="bg-charcoal border border-border/80 rounded-xl p-3 flex items-start gap-2.5">
-              <Ticket size={16} className={`mt-0.5 shrink-0 ${accentText[event.accent]}`} />
-              <div className="min-w-0">
-                <span className="block font-mono text-[9px] uppercase tracking-wider text-muted-foreground">
-                  Fee
-                </span>
-                <span className="font-mono text-xs text-white truncate block">
-                  {event.entry_fee || "Free Entry"}
-                </span>
-              </div>
-            </div>
-
-            {event.eligibility && (
-              <div className="bg-charcoal border border-border/80 rounded-xl p-3 flex items-start gap-2.5">
-                <Award size={16} className={`mt-0.5 shrink-0 ${accentText[event.accent]}`} />
-                <div className="min-w-0">
-                  <span className="block font-mono text-[9px] uppercase tracking-wider text-muted-foreground">
-                    Eligibility
-                  </span>
-                  <span className="font-mono text-xs text-white truncate block">
-                    {event.eligibility}
-                  </span>
-                </div>
-              </div>
-            )}
-
-            {event.dress_code && (
-              <div className="bg-charcoal border border-border/80 rounded-xl p-3 flex items-start gap-2.5">
-                <Shirt size={16} className={`mt-0.5 shrink-0 ${accentText[event.accent]}`} />
-                <div className="min-w-0">
-                  <span className="block font-mono text-[9px] uppercase tracking-wider text-muted-foreground">
-                    Dress Code
-                  </span>
-                  <span className="font-mono text-xs text-white truncate block">
-                    {event.dress_code}
-                  </span>
-                </div>
-              </div>
-            )}
-
-            {event.seats_note && (
-              <div className="bg-charcoal border border-border/80 rounded-xl p-3 flex items-start gap-2.5">
-                <UsersIcon size={16} className={`mt-0.5 shrink-0 ${accentText[event.accent]}`} />
-                <div className="min-w-0">
-                  <span className="block font-mono text-[9px] uppercase tracking-wider text-muted-foreground">
-                    Seats
-                  </span>
-                  <span className="font-mono text-xs text-white truncate block">
-                    {event.seats_note}
-                  </span>
-                </div>
-              </div>
-            )}
-          </div>
+          <motion.div
+            variants={{
+              hidden: {},
+              visible: {
+                transition: {
+                  staggerChildren: reduceMotion ? 0 : 0.065,
+                },
+              },
+            }}
+            className="grid grid-cols-2 sm:grid-cols-3 gap-3"
+          >
+            {[
+              {
+                icon: CalendarIcon,
+                label: "Date",
+                value: event.event_date
+                  ? new Date(event.event_date).toLocaleDateString("en-IN", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })
+                  : "Date TBA",
+              },
+              {
+                icon: MapPin,
+                label: "Venue",
+                value: event.venue || "Campus / Online",
+              },
+              {
+                icon: Ticket,
+                label: "Fee",
+                value: event.entry_fee || "Free Entry",
+              },
+              ...(event.eligibility
+                ? [{ icon: Award, label: "Eligibility", value: event.eligibility }]
+                : []),
+              ...(event.dress_code
+                ? [{ icon: Shirt, label: "Dress Code", value: event.dress_code }]
+                : []),
+              ...(event.seats_note
+                ? [{ icon: UsersIcon, label: "Seats", value: event.seats_note }]
+                : []),
+            ].map((spec) => {
+              const IconComp = spec.icon;
+              return (
+                <motion.div
+                  key={spec.label}
+                  variants={
+                    reduceMotion
+                      ? { hidden: { opacity: 0 }, visible: { opacity: 1 } }
+                      : {
+                          hidden: { opacity: 0, y: 12 },
+                          visible: {
+                            opacity: 1,
+                            y: 0,
+                            transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] },
+                          },
+                        }
+                  }
+                  className="bg-charcoal border border-border/80 rounded-xl p-3 flex items-start gap-2.5"
+                >
+                  <IconComp size={16} className={`mt-0.5 shrink-0 ${accentText[event.accent]}`} />
+                  <div className="min-w-0">
+                    <span className="block font-mono text-[9px] uppercase tracking-wider text-muted-foreground">
+                      {spec.label}
+                    </span>
+                    <span className="font-mono text-xs text-white truncate block">
+                      {spec.value}
+                    </span>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </motion.div>
 
           {/* Highlights */}
           {Array.isArray(event.highlights) && event.highlights.length > 0 && (
-            <div className="space-y-3">
+            <motion.div
+              variants={
+                reduceMotion
+                  ? { hidden: { opacity: 0 }, visible: { opacity: 1 } }
+                  : {
+                      hidden: { opacity: 0, y: 12 },
+                      visible: {
+                        opacity: 1,
+                        y: 0,
+                        transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] },
+                      },
+                    }
+              }
+              className="space-y-3"
+            >
               <h3 className="font-mono text-xs font-bold uppercase tracking-widest text-cyan flex items-center gap-1.5">
                 <Sparkles size={13} /> Highlights
               </h3>
@@ -814,11 +1192,25 @@ function EventDetailsPopup({
                   </div>
                 ))}
               </div>
-            </div>
+            </motion.div>
           )}
 
           {/* Description */}
-          <div className="space-y-2">
+          <motion.div
+            variants={
+              reduceMotion
+                ? { hidden: { opacity: 0 }, visible: { opacity: 1 } }
+                : {
+                    hidden: { opacity: 0, y: 12 },
+                    visible: {
+                      opacity: 1,
+                      y: 0,
+                      transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] },
+                    },
+                  }
+            }
+            className="space-y-2"
+          >
             <h3 className="font-mono text-xs font-bold uppercase tracking-widest text-white/50">
               Overview
             </h3>
@@ -829,7 +1221,7 @@ function EventDetailsPopup({
                   <p key={i}>{para}</p>
                 ))}
             </div>
-          </div>
+          </motion.div>
 
           {/* Schedule / Timeline */}
           {Array.isArray(event.schedule) && event.schedule.length > 0 && (
@@ -1000,72 +1392,19 @@ function EventDetailsPopup({
             </div>
           )}
 
-        </div>
+        </motion.div>
 
-        {/* Footer Actions */}
-        <div className="p-4 sm:p-6 border-t border-border bg-charcoal/90 backdrop-blur sticky bottom-0 z-20 flex flex-col sm:flex-row items-center justify-between gap-3">
-          {/* Calendar & Share Utilities */}
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            {icsHref && (
-              <a
-                href={icsHref}
-                download={`${event.title.replace(/[^a-z0-9]/gi, "_").toLowerCase()}.ics`}
-                className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border border-border bg-background hover:border-cyan text-xs font-mono text-white/80 hover:text-white transition-colors"
-                title="Add to Calendar (.ics)"
-              >
-                <CalendarIcon size={14} className="text-cyan" />
-                <span className="hidden sm:inline">Add to Calendar</span>
-                <span className="sm:hidden">Calendar</span>
-              </a>
-            )}
-
-            <button
-              onClick={handleShare}
-              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border border-border bg-background hover:border-pink text-xs font-mono text-white/80 hover:text-white transition-colors"
-              title="Share event link"
-            >
-              {copied ? (
-                <>
-                  <Check size={14} className="text-cyan" />
-                  <span className="text-cyan">Copied!</span>
-                </>
-              ) : (
-                <>
-                  <Share2 size={14} className="text-pink" />
-                  <span>Share</span>
-                </>
-              )}
-            </button>
-          </div>
-
-          {/* Register CTA */}
-          <div className="w-full sm:w-auto flex-1 sm:max-w-xs">
-            {isRegistrationClosed ? (
-              <button
-                disabled
-                className="w-full py-3 px-6 rounded-xl font-mono text-xs uppercase tracking-widest border border-white/10 bg-white/5 text-white/40 cursor-not-allowed text-center"
-              >
-                {buttonLabel}
-              </button>
-            ) : registerTargetUrl ? (
-              <a
-                href={registerTargetUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full inline-flex items-center justify-center gap-2 py-3 px-6 rounded-xl font-mono text-xs uppercase tracking-widest font-bold bg-cyan text-black hover:bg-cyan/90 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-[0_0_20px_rgba(0,255,255,0.3)] text-center"
-              >
-                {buttonLabel} <ExternalLink size={14} />
-              </a>
-            ) : (
-              <button
-                disabled
-                className="w-full py-3 px-6 rounded-xl font-mono text-xs uppercase tracking-widest border border-cyan/30 bg-cyan/10 text-cyan/70 cursor-not-allowed text-center"
-              >
-                Registration Coming Soon
-              </button>
-            )}
-          </div>
-        </div>
+        {/* Footer Actions — Glassmorphism Registration Panel */}
+        <RegistrationPanel
+          key={`reg-${event.id}`}
+          isRegistrationClosed={!!isRegistrationClosed}
+          registerTargetUrl={registerTargetUrl ?? null}
+          buttonLabel={buttonLabel}
+          icsHref={icsHref}
+          copied={copied}
+          onShare={handleShare}
+          reduceMotion={!!reduceMotion}
+        />
 
       </motion.div>
     </motion.div>
@@ -1319,9 +1658,9 @@ export function Gallery() {
             angle={-12}
             speed={20}
             direction="alternate"
-            parallax={0.45}
-            spotlight={0.65}
-            dim={0.28}
+            parallax={0}
+            spotlight={0}
+            dim={0.3}
             fade={0.35}
             theme="dark"
             className="h-full w-full opacity-75"

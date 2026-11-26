@@ -182,13 +182,6 @@ export function GalleryShowcase({
 
   return (
     <div className={`gallery-showcase ${className}`.trim()} style={stageStyle} aria-label="Gallery showcase">
-      <div className="gallery-showcase__toolbar">
-        <div className="gallery-showcase__heading">
-          <h3>Collections</h3>
-          <p>Swipe or drag to browse · Tap an album</p>
-        </div>
-      </div>
-
       <div className="gallery-showcase__stage">
         {mounted && albumItems.length > 0 && (
           <CircularGallery
