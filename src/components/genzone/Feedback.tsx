@@ -201,11 +201,12 @@ export function Footer() {
   const activeSocials = resolvedSocials.filter((s) => Boolean(s.url));
   const instagramItem = resolvedSocials.find((s) => s.label.trim().toLowerCase().includes("insta"));
   const ghostLen = Math.max(String(ghostText).length, 4);
-  const ghostVw = Math.min(12.2, Math.max(6, Number((82 / ghostLen).toFixed(1))));
+  // Use 95vw / charCount so text always fits within viewport with some margin
+  const ghostVw = Math.min(14, Math.max(5, Number((95 / ghostLen).toFixed(1))));
 
   return (
     <footer
-      className="relative overflow-x-clip px-5 pt-14 pb-8 md:px-16 md:pt-[var(--ft-pt)] md:pb-[var(--ft-pb)]"
+      className="relative overflow-hidden px-5 pt-14 pb-8 md:px-16 md:pt-[var(--ft-pt)] md:pb-[var(--ft-pb)]"
       style={{
         backgroundColor: bgColor === 'transparent' ? undefined : bgColor,
         ['--ft-pt' as string]: `${paddingTop}px`,
@@ -267,9 +268,9 @@ export function Footer() {
       {/* Giant ghost / wordmark text */}
       {ghostVisible && (
         <p
-          className="mt-12 w-full select-none whitespace-nowrap text-center font-display font-black leading-none tracking-tight md:mt-20"
+          className="mt-12 w-full select-none overflow-hidden text-center font-display font-black leading-none tracking-tight md:mt-20"
           style={{
-            fontSize: `clamp(2rem, ${ghostVw}vw, 12.5rem)`,
+            fontSize: `clamp(2rem, ${ghostVw}vw, 14rem)`,
             background: `linear-gradient(90deg, ${ghostFrom}, ${ghostTo})`,
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
