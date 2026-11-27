@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { CircularGallery } from './CircularGallery';
-import { FlexCarousel } from './FlexCarousel';
+import CurvedLensCarousel, { type LensSlide } from '@/components/ui/3d-curved-carousel';
 import './GalleryShowcase.css';
 
 export interface GalleryPhoto {
@@ -148,7 +148,7 @@ export function GalleryShowcase({
     [normalizedAlbums]
   );
 
-  const photoItems = useMemo(() => {
+  const lensSlides = useMemo<LensSlide[]>(() => {
     if (!selectedAlbum) return [];
     const photos = selectedAlbum.photos.length
       ? selectedAlbum.photos
@@ -160,12 +160,19 @@ export function GalleryShowcase({
             title: selectedAlbum.title,
           },
         ];
-    return photos.map(item => ({
-      src: item.src,
-      alt: item.alt ?? item.title ?? selectedAlbum.title,
-      title: item.title ?? item.alt ?? selectedAlbum.title,
-      subtitle: item.subtitle,
-    }));
+    return photos.map(item => {
+      const title = item.title ?? item.alt ?? selectedAlbum.title;
+      const kicker = item.subtitle;
+      const caption = item.alt && item.alt !== title ? item.alt : undefined;
+      const alt = item.alt;
+      return {
+        title,
+        image: item.src,
+        ...(kicker ? { kicker } : {}),
+        ...(caption ? { caption } : {}),
+        ...(alt ? { alt } : {}),
+      };
+    });
   }, [selectedAlbum]);
 
   const stageStyle = {
@@ -243,15 +250,15 @@ export function GalleryShowcase({
             </div>
 
             <div className="gallery-showcase-modal__stage">
-              <FlexCarousel
+              <CurvedLensCarousel
                 key={selectedAlbum.id}
-                items={photoItems}
-                intro="rise"
-                preset="liquid"
-                captions
-                focusOnClick
-                captureWheel
-                onSelect={(index: number) => {
+                slides={lensSlides}
+                label={selectedAlbum.title}
+                bend={0.55}
+                background="transparent"
+                ink="#f5f3ef"
+                height="100%"
+                onChange={(index: number) => {
                   const photo = selectedAlbum.photos[index];
                   if (photo) onPhotoSelect?.(photo, selectedAlbum);
                 }}
