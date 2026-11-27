@@ -2343,6 +2343,13 @@ function processPanelMembers(list: DbMember[]): DbMember[] {
     accent: pranjalInDb?.accent || "cyan",
   };
 
+  const extraTechMembers = list.filter(
+    (m) =>
+      m.department?.toLowerCase() === "technical team" &&
+      !m.name.toLowerCase().includes("krrish") &&
+      !m.name.toLowerCase().includes("pranjal")
+  );
+
   const techTeamCard: DbMember = {
     id: techHeadInDb?.id || "tech-team",
     name: "Technical Team",
@@ -2350,7 +2357,7 @@ function processPanelMembers(list: DbMember[]): DbMember[] {
     accent: "yellow",
     portrait_url: techHeadInDb?.portrait_url || krrishMember.portrait_url || pranjalMember.portrait_url || null,
     sort_order: techHeadInDb?.sort_order ?? 10,
-    subMembers: [krrishMember, pranjalMember],
+    subMembers: [krrishMember, pranjalMember, ...extraTechMembers],
   };
 
   // Event Management Team
@@ -2376,6 +2383,13 @@ function processPanelMembers(list: DbMember[]): DbMember[] {
     accent: nishithaInDb?.accent || "cyan",
   };
 
+  const extraEventMembers = list.filter(
+    (m) =>
+      m.department?.toLowerCase() === "event management team" &&
+      !m.name.toLowerCase().includes("nishchay") &&
+      !m.name.toLowerCase().includes("nishitha")
+  );
+
   const eventsTeamCard: DbMember = {
     id: eventHeadInDb?.id || "events-team",
     name: "Event Management Team",
@@ -2383,7 +2397,7 @@ function processPanelMembers(list: DbMember[]): DbMember[] {
     accent: "pink",
     portrait_url: eventHeadInDb?.portrait_url || nishchayMember.portrait_url || nishithaMember.portrait_url || null,
     sort_order: eventHeadInDb?.sort_order ?? 12,
-    subMembers: [nishchayMember, nishithaMember],
+    subMembers: [nishchayMember, nishithaMember, ...extraEventMembers],
   };
 
   // Social Media Team
@@ -2409,6 +2423,13 @@ function processPanelMembers(list: DbMember[]): DbMember[] {
     accent: divyamInDb?.accent || "pink",
   };
 
+  const extraSocialMembers = list.filter(
+    (m) =>
+      m.department?.toLowerCase() === "social media team" &&
+      !m.name.toLowerCase().includes("parth") &&
+      !m.name.toLowerCase().includes("divyam")
+  );
+
   const socialTeamCard: DbMember = {
     id: socialHeadInDb?.id || "social-team",
     name: "Social Media Team",
@@ -2416,7 +2437,7 @@ function processPanelMembers(list: DbMember[]): DbMember[] {
     accent: "yellow",
     portrait_url: socialHeadInDb?.portrait_url || parthMember.portrait_url || divyamMember.portrait_url || null,
     sort_order: socialHeadInDb?.sort_order ?? 14,
-    subMembers: [parthMember, divyamMember],
+    subMembers: [parthMember, divyamMember, ...extraSocialMembers],
   };
 
   // Design Team
@@ -2447,6 +2468,13 @@ function processPanelMembers(list: DbMember[]): DbMember[] {
     accent: designPranjalInDb?.accent || "cyan",
   };
 
+  const extraDesignMembers = list.filter(
+    (m) =>
+      m.department?.toLowerCase() === "design team" &&
+      !m.name.toLowerCase().includes("ayush") &&
+      !m.name.toLowerCase().includes("pranjal")
+  );
+
   const designTeamCard: DbMember = {
     id: designHeadInDb?.id || "design-team",
     name: "Design Team",
@@ -2454,7 +2482,7 @@ function processPanelMembers(list: DbMember[]): DbMember[] {
     accent: "pink",
     portrait_url: designHeadInDb?.portrait_url || ayushMember.portrait_url || pranjalDesignMember.portrait_url || null,
     sort_order: designHeadInDb?.sort_order ?? 16,
-    subMembers: [ayushMember, pranjalDesignMember],
+    subMembers: [ayushMember, pranjalDesignMember, ...extraDesignMembers],
   };
 
   // Finance Team
@@ -2480,6 +2508,13 @@ function processPanelMembers(list: DbMember[]): DbMember[] {
     accent: lakshyaInDb?.accent || "cyan",
   };
 
+  const extraFinanceMembers = list.filter(
+    (m) =>
+      m.department?.toLowerCase() === "finance team" &&
+      !m.name.toLowerCase().includes("tejas") &&
+      !m.name.toLowerCase().includes("lakshya")
+  );
+
   const financeTeamCard: DbMember = {
     id: financeHeadInDb?.id || "finance-team",
     name: "Finance Team",
@@ -2487,7 +2522,7 @@ function processPanelMembers(list: DbMember[]): DbMember[] {
     accent: "yellow",
     portrait_url: financeHeadInDb?.portrait_url || tejasMember.portrait_url || lakshyaMember.portrait_url || null,
     sort_order: financeHeadInDb?.sort_order ?? 18,
-    subMembers: [tejasMember, lakshyaMember],
+    subMembers: [tejasMember, lakshyaMember, ...extraFinanceMembers],
   };
 
   // Outreach Team
@@ -2509,6 +2544,13 @@ function processPanelMembers(list: DbMember[]): DbMember[] {
     accent: athravInDb?.accent || "cyan",
   };
 
+  const extraOutreachMembers = list.filter(
+    (m) =>
+      m.department?.toLowerCase() === "outreach team" &&
+      !m.name.toLowerCase().includes("athrav") &&
+      !m.name.toLowerCase().includes("atharv")
+  );
+
   const outreachTeamCard: DbMember = {
     id: outreachHeadInDb?.id || "outreach-team",
     name: "Outreach Team",
@@ -2516,7 +2558,7 @@ function processPanelMembers(list: DbMember[]): DbMember[] {
     accent: "cyan",
     portrait_url: outreachHeadInDb?.portrait_url || athravMember.portrait_url || null,
     sort_order: outreachHeadInDb?.sort_order ?? 20,
-    subMembers: [athravMember],
+    subMembers: [athravMember, ...extraOutreachMembers],
   };
 
   // Cultural Team
@@ -2550,6 +2592,14 @@ function processPanelMembers(list: DbMember[]): DbMember[] {
     accent: tanishaInDb?.accent || "cyan",
   };
 
+  const extraCulturalMembers = list.filter(
+    (m) =>
+      m.department?.toLowerCase() === "cultural team" &&
+      !m.name.toLowerCase().includes("mousam") &&
+      !m.name.toLowerCase().includes("malhar") &&
+      !m.name.toLowerCase().includes("tanisha")
+  );
+
   const culturalTeamCard: DbMember = {
     id: culturalHeadInDb?.id || "cultural-team",
     name: "Cultural Team",
@@ -2562,7 +2612,7 @@ function processPanelMembers(list: DbMember[]): DbMember[] {
       tanishaMember.portrait_url ||
       null,
     sort_order: culturalHeadInDb?.sort_order ?? 22,
-    subMembers: [mousamMember, malharMember, tanishaMember],
+    subMembers: [mousamMember, malharMember, tanishaMember, ...extraCulturalMembers],
   };
 
   // Decor Team
@@ -2580,6 +2630,12 @@ function processPanelMembers(list: DbMember[]): DbMember[] {
     accent: samyakInDb?.accent || "yellow",
   };
 
+  const extraDecorMembers = list.filter(
+    (m) =>
+      m.department?.toLowerCase() === "decor team" &&
+      !m.name.toLowerCase().includes("samyak")
+  );
+
   const decorTeamCard: DbMember = {
     id: decorHeadInDb?.id || "decor-team",
     name: "Decor Team",
@@ -2587,7 +2643,7 @@ function processPanelMembers(list: DbMember[]): DbMember[] {
     accent: "yellow",
     portrait_url: decorHeadInDb?.portrait_url || samyakMember.portrait_url || null,
     sort_order: decorHeadInDb?.sort_order ?? 25,
-    subMembers: [samyakMember],
+    subMembers: [samyakMember, ...extraDecorMembers],
   };
 
   // Photography Team
@@ -2597,6 +2653,29 @@ function processPanelMembers(list: DbMember[]): DbMember[] {
       m.role.toLowerCase().includes("photo") ||
       m.name.toLowerCase().includes("photo")
   );
+
+  const aairahMember: DbMember = {
+    ...(aairahInDb || PHOTOGRAPHY_TEAM_DEFAULT.subMembers![0]),
+    name: "Aairah",
+    role: "Photography Lead",
+    accent: aairahInDb?.accent || "pink",
+  };
+
+  const extraPhotoMembers = list.filter(
+    (m) =>
+      m.department?.toLowerCase() === "photography team" &&
+      !m.name.toLowerCase().includes("aairah")
+  );
+
+  const photoTeamCard: DbMember = {
+    id: photoHeadInDb?.id || "photography-team",
+    name: "Photography Team",
+    role: "Photography Team",
+    accent: "pink",
+    portrait_url: photoHeadInDb?.portrait_url || aairahMember.portrait_url || null,
+    sort_order: photoHeadInDb?.sort_order ?? 26,
+    subMembers: [aairahMember, ...extraPhotoMembers],
+  };
 
   const aairahMember: DbMember = {
     ...(aairahInDb || PHOTOGRAPHY_TEAM_DEFAULT.subMembers![0]),

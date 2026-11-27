@@ -691,19 +691,29 @@ export default function Panel() {
                   />
                 </div>
 
-                {/* Department + Year/Batch */}
+                {/* Team / Department + Year/Batch */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block font-mono text-[10px] text-muted-foreground uppercase tracking-widest mb-1.5">
-                      Department
+                      Team / Department
                     </label>
-                    <input
-                      type="text"
+                    <select
                       value={form.department}
                       onChange={(e) => setForm({ ...form, department: e.target.value })}
                       className="w-full bg-background border border-border rounded-lg px-3 py-2.5 text-white text-sm font-mono focus:outline-none focus:ring-2 focus:ring-cyan/50 focus:border-cyan transition-all"
-                      placeholder="e.g. Computer Science"
-                    />
+                    >
+                      <option value="">-- Select Team --</option>
+                      <option value="Faculty">Faculty</option>
+                      <option value="Technical Team">Technical Team</option>
+                      <option value="Event Management Team">Event Management Team</option>
+                      <option value="Social Media Team">Social Media Team</option>
+                      <option value="Design Team">Design Team</option>
+                      <option value="Finance Team">Finance Team</option>
+                      <option value="Outreach Team">Outreach Team</option>
+                      <option value="Cultural Team">Cultural Team</option>
+                      <option value="Decor Team">Decor Team</option>
+                      <option value="Photography Team">Photography Team</option>
+                    </select>
                   </div>
                   <div>
                     <label className="block font-mono text-[10px] text-muted-foreground uppercase tracking-widest mb-1.5">
