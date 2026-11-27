@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
-import { X } from 'lucide-react';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { ChevronLeft, ChevronRight, X, ZoomIn } from 'lucide-react';
 import { CircularGallery } from './CircularGallery';
 import CoverflowCarousel, { type CoverflowCarouselItem } from '@/components/ui/coverflow-carousel';
 import './GalleryShowcase.css';
@@ -96,6 +97,8 @@ export function GalleryShowcase({
   const [mounted, setMounted] = useState(false);
   const [selectedAlbumId, setSelectedAlbumId] = useState<string | null>(null);
   const [activePhotoIndex, setActivePhotoIndex] = useState(0);
+  const [isEnlarged, setIsEnlarged] = useState(false);
+  const reduceMotion = useReducedMotion();
   const closeBtnRef = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => {
@@ -112,7 +115,21 @@ export function GalleryShowcase({
     [normalizedAlbums, selectedAlbumId]
   );
 
-  // Lock body scroll and listen for Escape while the FlexCarousel modal is open
+  const activePhotos = useMemo<GalleryPhoto[]>(() => {
+    if (!selectedAlbum) return [];
+    return selectedAlbum.photos.length
+      ? selectedAlbum.photos
+      : [
+          {
+            id: `${selectedAlbum.id}-cover`,
+            src: selectedAlbum.coverImage,
+            alt: `${selectedAlbum.title} album cover`,
+            title: selectedAlbum.title,
+          },
+        ];
+  }, [selectedAlbum]);
+
+  // Lock body scroll and listen for Escape while the album modal / lightbox is open
   useEffect(() => {
     if (!selectedAlbum || typeof document === 'undefined' || typeof window === 'undefined') return undefined;
 
@@ -127,7 +144,19 @@ export function GalleryShowcase({
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && !e.defaultPrevented) {
         e.preventDefault();
-        setSelectedAlbumId(null);
+        if (isEnlarged) {
+          setIsEnlarged(false);
+        } else {
+          setSelectedAlbumId(null);
+        }
+      } else if (isEnlarged && activePhotos.length > 1) {
+        if (e.key === 'ArrowRight') {
+          e.preventDefault();
+          setActivePhotoIndex((prev) => (prev + 1) % activePhotos.length);
+        } else if (e.key === 'ArrowLeft') {
+          e.preventDefault();
+          setActivePhotoIndex((prev) => (prev - 1 + activePhotos.length) % activePhotos.length);
+        }
       }
     };
 
@@ -137,7 +166,7 @@ export function GalleryShowcase({
       document.body.style.overflow = prevOverflow;
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [selectedAlbum]);
+  }, [selectedAlbum, isEnlarged, activePhotos.length]);
 
   const albumItems = useMemo(
     () =>
@@ -148,20 +177,6 @@ export function GalleryShowcase({
       })),
     [normalizedAlbums]
   );
-
-  const activePhotos = useMemo<GalleryPhoto[]>(() => {
-    if (!selectedAlbum) return [];
-    return selectedAlbum.photos.length
-      ? selectedAlbum.photos
-      : [
-          {
-            id: `${selectedAlbum.id}-cover`,
-            src: selectedAlbum.coverImage,
-            alt: `${selectedAlbum.title} album cover`,
-            title: selectedAlbum.title,
-          },
-        ];
-  }, [selectedAlbum]);
 
   const coverflowItems = useMemo<CoverflowCarouselItem[]>(() => {
     if (!selectedAlbum) return [];
@@ -183,6 +198,7 @@ export function GalleryShowcase({
     const album = normalizedAlbums[index];
     if (!album) return;
     setActivePhotoIndex(0);
+    setIsEnlarged(false);
     setSelectedAlbumId(album.id);
     onAlbumSelect?.(album);
   };
@@ -253,12 +269,14 @@ export function GalleryShowcase({
               <CoverflowCarousel
                 key={selectedAlbum.id}
                 items={coverflowItems}
+                index={activePhotoIndex}
                 loop={coverflowItems.length > 2}
                 onIndexChange={(index: number) => {
                   setActivePhotoIndex(index);
                   const photo = selectedAlbum.photos[index];
                   if (photo) onPhotoSelect?.(photo, selectedAlbum);
                 }}
+                onItemClick={() => setIsEnlarged(true)}
                 className="gallery-showcase__carousel flex max-w-4xl flex-col justify-center"
               />
               {activePhoto && (
@@ -271,12 +289,91 @@ export function GalleryShowcase({
                   <p className="font-display text-lg sm:text-2xl font-bold uppercase tracking-wide text-white">
                     {activePhoto.title || activePhoto.alt || selectedAlbum.title}
                   </p>
-                  <p className="font-mono text-[11px] text-white/45">
-                    {String(activePhotoIndex + 1).padStart(2, '0')} / {String(coverflowItems.length).padStart(2, '0')}
+                  <p className="inline-flex items-center justify-center gap-1.5 font-mono text-[11px] text-white/45">
+                    <span>{String(activePhotoIndex + 1).padStart(2, '0')} / {String(coverflowItems.length).padStart(2, '0')}</span>
+                    <span aria-hidden="true">·</span>
+                    <ZoomIn size={11} className="text-cyan/70" />
+                    <span>Tap image to enlarge</span>
                   </p>
                 </div>
               )}
             </div>
+
+            <AnimatePresence>
+              {isEnlarged && activePhoto && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  onClick={() => setIsEnlarged(false)}
+                  role="dialog"
+                  aria-modal="true"
+                  aria-label={`Enlarged view of ${activePhoto.title || selectedAlbum.title}`}
+                  className="fixed inset-0 z-[130] flex flex-col items-center justify-center bg-black/92 backdrop-blur-xl p-4 sm:p-8"
+                >
+                  <button
+                    type="button"
+                    onClick={() => setIsEnlarged(false)}
+                    aria-label="Close enlarged image"
+                    className="absolute top-4 right-4 sm:top-6 sm:right-6 z-20 flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-black/70 text-white hover:border-cyan hover:text-cyan transition-colors cursor-pointer"
+                  >
+                    <X size={20} />
+                  </button>
+
+                  {activePhotos.length > 1 && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActivePhotoIndex((prev) => (prev - 1 + activePhotos.length) % activePhotos.length);
+                        }}
+                        aria-label="Previous enlarged photo"
+                        className="absolute left-3 sm:left-6 top-1/2 -translate-y-1/2 z-20 flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-black/70 text-white hover:border-cyan hover:text-cyan transition-colors cursor-pointer"
+                      >
+                        <ChevronLeft size={22} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActivePhotoIndex((prev) => (prev + 1) % activePhotos.length);
+                        }}
+                        aria-label="Next enlarged photo"
+                        className="absolute right-3 sm:right-6 top-1/2 -translate-y-1/2 z-20 flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-black/70 text-white hover:border-cyan hover:text-cyan transition-colors cursor-pointer"
+                      >
+                        <ChevronRight size={22} />
+                      </button>
+                    </>
+                  )}
+
+                  <motion.div
+                    initial={reduceMotion ? { opacity: 0 } : { scale: 0.9, opacity: 0 }}
+                    animate={reduceMotion ? { opacity: 1 } : { scale: 1, opacity: 1 }}
+                    exit={reduceMotion ? { opacity: 0 } : { scale: 0.92, opacity: 0 }}
+                    transition={{ type: 'spring', stiffness: 320, damping: 28 }}
+                    onClick={(e) => e.stopPropagation()}
+                    className="relative flex max-h-[82dvh] max-w-[92vw] flex-col items-center"
+                  >
+                    <img
+                      src={activePhoto.src}
+                      alt={activePhoto.alt || activePhoto.title || selectedAlbum.title}
+                      onClick={() => setIsEnlarged(false)}
+                      className="max-h-[78dvh] max-w-[92vw] w-auto rounded-2xl border border-white/15 object-contain shadow-[0_24px_80px_rgba(0,0,0,0.85)] cursor-zoom-out"
+                    />
+                    <div className="mt-3 text-center space-y-0.5">
+                      <p className="font-display text-base sm:text-xl font-bold uppercase text-white">
+                        {activePhoto.title || activePhoto.alt || selectedAlbum.title}
+                      </p>
+                      <p className="font-mono text-[11px] text-white/50">
+                        {String(activePhotoIndex + 1).padStart(2, '0')} / {String(activePhotos.length).padStart(2, '0')} · Click image or press Esc to close
+                      </p>
+                    </div>
+                  </motion.div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>,
           document.body
         )}

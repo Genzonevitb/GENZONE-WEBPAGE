@@ -23,6 +23,7 @@ export interface CoverflowCarouselProps {
   items: CoverflowCarouselItem[];
   loop?: boolean;
   onIndexChange?: (index: number) => void;
+  onItemClick?: (item: CoverflowCarouselItem, index: number) => void;
   rotation?: number;
   scaleStep?: number;
   spacing?: number;
@@ -47,6 +48,7 @@ const CoverflowCarousel = ({
   items,
   index: indexProp,
   onIndexChange,
+  onItemClick,
   inverted = false,
   depth = DEFAULT_DEPTH,
   rotation = DEFAULT_ROTATION,
@@ -139,6 +141,7 @@ const CoverflowCarousel = ({
 
   const dragEndRef = useRef(handleDragEnd);
   dragEndRef.current = handleDragEnd;
+  const didDragRef = useRef(false);
 
   return (
     <div
@@ -160,7 +163,15 @@ const CoverflowCarousel = ({
         drag={total > 1 && !shouldReduceMotion ? "x" : false}
         dragConstraints={{ left: 0, right: 0 }}
         dragElastic={0.12}
-        onDragEnd={(event, info) => dragEndRef.current(event, info)}
+        onDragStart={() => {
+          didDragRef.current = true;
+        }}
+        onDragEnd={(event, info) => {
+          dragEndRef.current(event, info);
+          window.setTimeout(() => {
+            didDragRef.current = false;
+          }, 80);
+        }}
         style={{ transformStyle: "preserve-3d" }}
       >
         {items.map((item, i) => {
@@ -195,11 +206,18 @@ const CoverflowCarousel = ({
               }
               aria-hidden={!isActive}
               onClick={() => {
-                if (!isActive) goTo(i);
+                if (didDragRef.current) return;
+                if (!isActive) {
+                  goTo(i);
+                } else {
+                  onItemClick?.(item, i);
+                }
               }}
+              {...(isActive && onItemClick ? { title: "Click to enlarge" } : {})}
               className={cn(
                 "absolute h-[220px] w-[280px] overflow-hidden rounded-2xl border border-foreground/10 bg-background shadow-xl sm:h-[280px] sm:w-[360px]",
                 !isActive && "cursor-pointer",
+                isActive && onItemClick && "cursor-zoom-in",
               )}
               key={item.id}
               style={{
