@@ -2345,7 +2345,7 @@ function processPanelMembers(list: DbMember[]): DbMember[] {
 
   const extraTechMembers = list.filter(
     (m) =>
-      m.department?.toLowerCase() === "technical team" &&
+      (m.team?.toLowerCase() === "technical team" || m.department?.toLowerCase() === "technical team") &&
       !m.name.toLowerCase().includes("krrish") &&
       !m.name.toLowerCase().includes("pranjal")
   );
@@ -2385,7 +2385,7 @@ function processPanelMembers(list: DbMember[]): DbMember[] {
 
   const extraEventMembers = list.filter(
     (m) =>
-      m.department?.toLowerCase() === "event management team" &&
+      (m.team?.toLowerCase() === "event management team" || m.department?.toLowerCase() === "event management team") &&
       !m.name.toLowerCase().includes("nishchay") &&
       !m.name.toLowerCase().includes("nishitha")
   );
@@ -2425,7 +2425,7 @@ function processPanelMembers(list: DbMember[]): DbMember[] {
 
   const extraSocialMembers = list.filter(
     (m) =>
-      m.department?.toLowerCase() === "social media team" &&
+      (m.team?.toLowerCase() === "social media team" || m.department?.toLowerCase() === "social media team") &&
       !m.name.toLowerCase().includes("parth") &&
       !m.name.toLowerCase().includes("divyam")
   );
@@ -2470,7 +2470,7 @@ function processPanelMembers(list: DbMember[]): DbMember[] {
 
   const extraDesignMembers = list.filter(
     (m) =>
-      m.department?.toLowerCase() === "design team" &&
+      (m.team?.toLowerCase() === "design team" || m.department?.toLowerCase() === "design team") &&
       !m.name.toLowerCase().includes("ayush") &&
       !m.name.toLowerCase().includes("pranjal")
   );
@@ -2510,7 +2510,7 @@ function processPanelMembers(list: DbMember[]): DbMember[] {
 
   const extraFinanceMembers = list.filter(
     (m) =>
-      m.department?.toLowerCase() === "finance team" &&
+      (m.team?.toLowerCase() === "finance team" || m.department?.toLowerCase() === "finance team") &&
       !m.name.toLowerCase().includes("tejas") &&
       !m.name.toLowerCase().includes("lakshya")
   );
@@ -2546,7 +2546,7 @@ function processPanelMembers(list: DbMember[]): DbMember[] {
 
   const extraOutreachMembers = list.filter(
     (m) =>
-      m.department?.toLowerCase() === "outreach team" &&
+      (m.team?.toLowerCase() === "outreach team" || m.department?.toLowerCase() === "outreach team") &&
       !m.name.toLowerCase().includes("athrav") &&
       !m.name.toLowerCase().includes("atharv")
   );

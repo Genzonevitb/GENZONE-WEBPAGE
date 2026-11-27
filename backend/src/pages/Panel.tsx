@@ -22,12 +22,13 @@ interface PanelMember {
   id: string
   name: string
   role: string
+  team?: string | null
+  department?: string | null
   accent: string | null
   portrait_url: string | null
   portrait_path: string | null
   sort_order: number
   created_at: string
-  department?: string | null
   year_batch?: string | null
   bio?: string | null
   quote?: string | null
@@ -78,6 +79,7 @@ interface FormState {
   role: string
   accent: string
   sort_order: number
+  team: string
   department: string
   year_batch: string
   bio: string
@@ -114,6 +116,7 @@ const EMPTY_FORM: FormState = {
   role: '',
   accent: 'cyan',
   sort_order: 0,
+  team: '',
   department: '',
   year_batch: '',
   bio: '',
@@ -364,6 +367,7 @@ export default function Panel() {
       role: member.role ?? '',
       accent: member.accent ?? 'cyan',
       sort_order: member.sort_order ?? 0,
+      team: member.team ?? '',
       department: member.department ?? '',
       year_batch: member.year_batch ?? '',
       bio: member.bio ?? '',
@@ -465,6 +469,7 @@ export default function Panel() {
         role: form.role.trim(),
         accent: form.accent,
         sort_order: form.sort_order,
+        team: form.team.trim() || null,
         department: form.department.trim() || null,
         year_batch: form.year_batch.trim() || null,
         bio: form.bio.trim() || null,
@@ -691,15 +696,15 @@ export default function Panel() {
                   />
                 </div>
 
-                {/* Team / Department + Year/Batch */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Team + Department + Year/Batch */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
                     <label className="block font-mono text-[10px] text-muted-foreground uppercase tracking-widest mb-1.5">
-                      Team / Department
+                      Club Team
                     </label>
                     <select
-                      value={form.department}
-                      onChange={(e) => setForm({ ...form, department: e.target.value })}
+                      value={form.team}
+                      onChange={(e) => setForm({ ...form, team: e.target.value })}
                       className="w-full bg-background border border-border rounded-lg px-3 py-2.5 text-white text-sm font-mono focus:outline-none focus:ring-2 focus:ring-cyan/50 focus:border-cyan transition-all"
                     >
                       <option value="">-- Select Team --</option>
@@ -714,6 +719,18 @@ export default function Panel() {
                       <option value="Decor Team">Decor Team</option>
                       <option value="Photography Team">Photography Team</option>
                     </select>
+                  </div>
+                  <div>
+                    <label className="block font-mono text-[10px] text-muted-foreground uppercase tracking-widest mb-1.5">
+                      Academic Department
+                    </label>
+                    <input
+                      type="text"
+                      value={form.department}
+                      onChange={(e) => setForm({ ...form, department: e.target.value })}
+                      className="w-full bg-background border border-border rounded-lg px-3 py-2.5 text-white text-sm font-mono focus:outline-none focus:ring-2 focus:ring-cyan/50 focus:border-cyan transition-all"
+                      placeholder="e.g. CSE, AI & ML, Mechanical..."
+                    />
                   </div>
                   <div>
                     <label className="block font-mono text-[10px] text-muted-foreground uppercase tracking-widest mb-1.5">
