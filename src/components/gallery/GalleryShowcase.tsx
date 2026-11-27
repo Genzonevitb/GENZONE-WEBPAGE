@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { CircularGallery } from './CircularGallery';
-import CurvedLensCarousel, { type LensSlide } from '@/components/ui/3d-curved-carousel';
+import CoverflowCarousel, { type CoverflowCarouselItem } from '@/components/ui/coverflow-carousel';
 import './GalleryShowcase.css';
 
 export interface GalleryPhoto {
@@ -95,6 +95,7 @@ export function GalleryShowcase({
 }: GalleryShowcaseProps) {
   const [mounted, setMounted] = useState(false);
   const [selectedAlbumId, setSelectedAlbumId] = useState<string | null>(null);
+  const [activePhotoIndex, setActivePhotoIndex] = useState(0);
   const closeBtnRef = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => {
@@ -148,9 +149,9 @@ export function GalleryShowcase({
     [normalizedAlbums]
   );
 
-  const lensSlides = useMemo<LensSlide[]>(() => {
+  const activePhotos = useMemo<GalleryPhoto[]>(() => {
     if (!selectedAlbum) return [];
-    const photos = selectedAlbum.photos.length
+    return selectedAlbum.photos.length
       ? selectedAlbum.photos
       : [
           {
@@ -160,20 +161,18 @@ export function GalleryShowcase({
             title: selectedAlbum.title,
           },
         ];
-    return photos.map(item => {
-      const title = item.title ?? item.alt ?? selectedAlbum.title;
-      const kicker = item.subtitle;
-      const caption = item.alt && item.alt !== title ? item.alt : undefined;
-      const alt = item.alt;
-      return {
-        title,
-        image: item.src,
-        ...(kicker ? { kicker } : {}),
-        ...(caption ? { caption } : {}),
-        ...(alt ? { alt } : {}),
-      };
-    });
   }, [selectedAlbum]);
+
+  const coverflowItems = useMemo<CoverflowCarouselItem[]>(() => {
+    if (!selectedAlbum) return [];
+    return activePhotos.map((item) => ({
+      id: item.id,
+      image: item.src,
+      alt: item.alt ?? item.title ?? selectedAlbum.title,
+    }));
+  }, [activePhotos, selectedAlbum]);
+
+  const activePhoto = activePhotos[activePhotoIndex] ?? activePhotos[0];
 
   const stageStyle = {
     '--gallery-showcase-height': typeof height === 'number' ? `${height}px` : height,
@@ -183,6 +182,7 @@ export function GalleryShowcase({
   const openAlbum = (index: number) => {
     const album = normalizedAlbums[index];
     if (!album) return;
+    setActivePhotoIndex(0);
     setSelectedAlbumId(album.id);
     onAlbumSelect?.(album);
   };
@@ -249,21 +249,33 @@ export function GalleryShowcase({
               </button>
             </div>
 
-            <div className="gallery-showcase-modal__stage">
-              <CurvedLensCarousel
+            <div className="gallery-showcase-modal__stage flex flex-col items-center justify-center overflow-hidden px-4 pb-8">
+              <CoverflowCarousel
                 key={selectedAlbum.id}
-                slides={lensSlides}
-                label={selectedAlbum.title}
-                bend={0.55}
-                background="transparent"
-                ink="#f5f3ef"
-                height="100%"
-                onChange={(index: number) => {
+                items={coverflowItems}
+                loop={coverflowItems.length > 2}
+                onIndexChange={(index: number) => {
+                  setActivePhotoIndex(index);
                   const photo = selectedAlbum.photos[index];
                   if (photo) onPhotoSelect?.(photo, selectedAlbum);
                 }}
-                className="gallery-showcase__carousel"
+                className="gallery-showcase__carousel flex max-w-4xl flex-col justify-center"
               />
+              {activePhoto && (
+                <div className="mt-5 text-center space-y-1 pointer-events-none">
+                  {activePhoto.subtitle && (
+                    <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-cyan">
+                      {activePhoto.subtitle}
+                    </p>
+                  )}
+                  <p className="font-display text-lg sm:text-2xl font-bold uppercase tracking-wide text-white">
+                    {activePhoto.title || activePhoto.alt || selectedAlbum.title}
+                  </p>
+                  <p className="font-mono text-[11px] text-white/45">
+                    {String(activePhotoIndex + 1).padStart(2, '0')} / {String(coverflowItems.length).padStart(2, '0')}
+                  </p>
+                </div>
+              )}
             </div>
           </div>,
           document.body
